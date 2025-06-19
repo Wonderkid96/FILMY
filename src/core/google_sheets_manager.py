@@ -4,6 +4,7 @@ import streamlit as st
 from google.oauth2.service_account import Credentials
 import json
 import os
+import time
 from typing import Dict, List, Optional
 from datetime import datetime
 from .config import (
@@ -22,9 +23,19 @@ class GoogleSheetsManager:
         self.credentials_file = GOOGLE_CREDENTIALS_FILE
         self.sheet_id = GOOGLE_SHEET_ID
         self.worksheet_name = GOOGLE_WORKSHEET_NAME
+        self.last_api_call = 0
+        self.min_call_interval = 1.0  # Minimum 1 second between API calls
         
         # Try to initialize connection
         self.connect()
+    
+    def _rate_limit(self):
+        """Simple rate limiting to avoid quota issues"""
+        current_time = time.time()
+        time_since_last_call = current_time - self.last_api_call
+        if time_since_last_call < self.min_call_interval:
+            time.sleep(self.min_call_interval - time_since_last_call)
+        self.last_api_call = time.time()
     
     def connect(self) -> bool:
         """Connect to Google Sheets API"""
@@ -444,6 +455,7 @@ class GoogleSheetsManager:
             return False
         
         try:
+            self._rate_limit()  # Rate limiting
             # Prepare row data in correct order
             row_data = [
                 rating_data.get('tmdb_id', ''),
@@ -476,6 +488,7 @@ class GoogleSheetsManager:
             return pd.DataFrame()
         
         try:
+            self._rate_limit()  # Rate limiting
             # Get all records
             records = self.worksheet.get_all_records()
             df = pd.DataFrame(records)
