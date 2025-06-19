@@ -59,4 +59,5 @@ ehthumbs.db
 Thumbs.db
 
 # Streamlit
-.streamlit/ 
+.streamlit/
+.streamlit/secrets.toml 

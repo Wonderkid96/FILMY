@@ -6,6 +6,14 @@ load_dotenv()
 
 # API Configuration
 TMDB_API_KEY = os.getenv('TMDB_API_KEY')
+
+# Fallback to Streamlit secrets if running on Streamlit Cloud
+if not TMDB_API_KEY:
+    try:
+        import streamlit as st
+        TMDB_API_KEY = st.secrets.get('TMDB_API_KEY')
+    except:
+        pass
 TMDB_BASE_URL = "https://api.themoviedb.org/3"
 TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
 
