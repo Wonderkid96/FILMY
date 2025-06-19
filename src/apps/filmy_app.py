@@ -252,10 +252,8 @@ st.markdown(
 
 
 def display_content_card(item: Dict, show_actions: bool = True):
-    """Display a beautiful movie/TV show card"""
+    """Display a compact, beautiful movie/TV show card"""
     st.markdown('<div class="movie-card">', unsafe_allow_html=True)
-
-    col1, col2 = st.columns([1, 3])
 
     # Check if already rated (with safety check)
     already_rated = False
@@ -270,13 +268,55 @@ def display_content_card(item: Dict, show_actions: bool = True):
         except Exception:
             already_rated = False
 
-    with col1:
-        if item["poster_path"]:
-            st.image(item["poster_path"], width=150)
-        else:
-            st.info("🎬\n\nNo poster\navailable")
+    # Compact header with poster thumbnail and title
+    col_poster, col_title = st.columns([1, 5])
 
-    with col2:
+    with col_poster:
+        if item.get("poster_path") and item["poster_path"] != "None":
+            try:
+                st.image(item["poster_path"], width=80)
+            except Exception:
+                # Compact fallback icon
+                st.markdown(
+                    """
+                    <div style="
+                        width: 80px; 
+                        height: 120px; 
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        border-radius: 6px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 24px;
+                    ">
+                        🎬
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        else:
+            # Compact styled placeholder
+            st.markdown(
+                """
+                <div style="
+                    width: 80px; 
+                    height: 120px; 
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    border-radius: 6px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 24px;
+                ">
+                    🎬
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    with col_title:
         st.markdown(f"### {item['title']}")
 
         # Show if already rated
