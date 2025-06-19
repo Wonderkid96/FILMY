@@ -6,17 +6,63 @@ from typing import Dict
 import time
 
 # Import our enhanced modules
-from config import APP_TITLE, APP_ICON, MOVIE_GENRES, TV_GENRES, RATING_LABELS, RATING_COLORS
-from tmdb_api import TMDBApi
-from enhanced_ratings_manager import EnhancedRatingsManager
+from core.config import APP_TITLE, APP_ICON, MOVIE_GENRES, TV_GENRES, RATING_LABELS, RATING_COLORS
+from core.tmdb_api import TMDBApi
+from core.enhanced_ratings_manager import EnhancedRatingsManager
 
 # Page configuration
 st.set_page_config(
     page_title=APP_TITLE,
     page_icon=APP_ICON,
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="auto"  # Better for mobile
 )
+
+# Mobile-optimized CSS
+st.markdown("""
+<style>
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .main .block-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        max-width: 100%;
+    }
+    
+    /* Compact cards for mobile */
+    .stColumns > div {
+        padding: 0.25rem;
+    }
+    
+    /* Better button sizing */
+    .stButton > button {
+        width: 100%;
+        font-size: 0.9rem;
+        padding: 0.5rem;
+    }
+    
+    /* Compact metrics */
+    [data-testid="metric-container"] {
+        background-color: rgba(28, 131, 225, 0.1);
+        border: 1px solid rgba(28, 131, 225, 0.1);
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        margin: 0.25rem 0;
+    }
+}
+
+/* Enhanced visual styling */
+.main-header {
+    font-size: 2.5rem;
+    font-weight: bold;
+    text-align: center;
+    background: linear-gradient(90deg, #FF6B6B, #4ECDC4, #45B7D1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1rem;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # Custom CSS
 st.markdown("""

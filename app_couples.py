@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-FILMY - Main Application Launcher
-Launches the original FILMY experience
+FILMY - Couples Edition Launcher
+Launches the advanced couples tracking experience
 """
 
 import sys
@@ -10,7 +10,7 @@ import os
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-# Import and run the main app
+# Import and run the couples app
 if __name__ == "__main__":
-    from apps.app_enhanced import main
+    from apps.app_couples import main
     main() 

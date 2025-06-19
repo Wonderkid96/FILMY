@@ -3,8 +3,8 @@ import streamlit as st
 import os
 from typing import Dict, List
 from datetime import datetime
-from google_sheets_manager import GoogleSheetsManager
-from config import RATING_SYSTEM, RATING_LABELS, CSV_HEADERS
+from .google_sheets_manager import GoogleSheetsManager
+from .config import RATING_SYSTEM, RATING_LABELS, CSV_HEADERS
 
 
 class EnhancedRatingsManager:

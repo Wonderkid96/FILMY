@@ -31,16 +31,18 @@ venv.bak/
 
 # Credentials & Secrets
 credentials/
-*.json
+credentials.json
+google_credentials.json
 .env
 .env.local
 .env.*.local
 config.json
 secrets.json
 
-# FILMY Data Files
-filmy_ratings.csv
-*.csv
+# FILMY Data Files - Only exclude actual data, not templates
+data/filmy_ratings.csv
+data/backups/
+logs/
 
 # IDE
 .vscode/
@@ -58,6 +60,6 @@ filmy_ratings.csv
 ehthumbs.db
 Thumbs.db
 
-# Streamlit
-.streamlit/
-.streamlit/secrets.toml 
+# Streamlit - Only hide secrets, not config
+.streamlit/secrets.toml
+.streamlit/secrets.json 

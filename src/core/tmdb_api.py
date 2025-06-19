@@ -1,7 +1,7 @@
 import requests
 import streamlit as st
 from typing import Dict, List, Optional, Tuple
-from config import TMDB_API_KEY, TMDB_BASE_URL, TMDB_IMAGE_BASE_URL, MOVIE_GENRES, TV_GENRES
+from .config import TMDB_API_KEY, TMDB_BASE_URL, TMDB_IMAGE_BASE_URL, MOVIE_GENRES, TV_GENRES
 
 class TMDBApi:
     def __init__(self):

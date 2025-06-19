@@ -1,6 +1,6 @@
-# 🎬 FILMY - Your Personal Movie & TV Recommendation Engine
+# 🎬💕 FILMY - Advanced Movie & TV Recommendation Engine
 
-A sophisticated movie and TV show recommendation system built with Python and Streamlit, powered by The Movie Database (TMDB) API. FILMY provides personalized recommendations based on your viewing preferences using advanced machine learning algorithms.
+A sophisticated movie and TV show recommendation system with **Couples Edition** featuring advanced user tracking, mobile optimization, and intelligent compatibility analysis. Built with Python and Streamlit, powered by The Movie Database (TMDB) API with enhanced Google Sheets integration.
 
 ![FILMY Demo](https://img.shields.io/badge/Status-Ready%20to%20Use-brightgreen)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
@@ -13,6 +13,13 @@ A sophisticated movie and TV show recommendation system built with Python and St
 - **Genre-based Filtering**: Get recommendations based on your favorite genres
 - **Hybrid Algorithm**: Combines content-based and collaborative filtering
 - **Rating Filters**: Set minimum rating thresholds for recommendations
+
+### 💕 **NEW: Couples Edition**
+- **Advanced User Tracking**: "Toby seen" / "Taz seen" / "Both seen" system
+- **Compatibility Analysis**: Smart scoring with percentage compatibility
+- **Mobile-First Design**: Fully responsive for phone usage
+- **Google Sheets Integration**: 20-column sophisticated tracking with live stats
+- **Joint Decision Making**: Couple ratings with agreement bonuses
 
 ### 🔍 Advanced Discovery
 - **Multi-Genre Search**: Filter by multiple genres simultaneously

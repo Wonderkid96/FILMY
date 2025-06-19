@@ -6,7 +6,7 @@ import json
 import os
 from typing import Dict, List, Optional
 from datetime import datetime
-from config import (
+from .config import (
     GOOGLE_CREDENTIALS_FILE, GOOGLE_SHEET_ID, GOOGLE_WORKSHEET_NAME,
     CSV_HEADERS
 )
@@ -96,18 +96,20 @@ class GoogleSheetsManager:
             # Clear existing content
             self.worksheet.clear()
             
-            # Add headers with enhanced formatting
+            # Add headers with enhanced formatting for user tracking
             enhanced_headers = [
                 'TMDB ID', 'Title', 'Type', 'Release Date', 'Genres', 
                 'TMDB Rating', 'My Rating', 'Rating Label', 'Date Rated', 
-                'Overview', 'Poster URL'
+                'Overview', 'Poster URL', 'Toby Seen', 'Taz Seen', 'Both Seen',
+                'Who Rated', 'Couple Score', 'Rec Type', 'Date Discovered',
+                'Statistics', 'Live Data'
             ]
             
             # Set headers
-            self.worksheet.update('A1:K1', [enhanced_headers])
+            self.worksheet.update('A1:T1', [enhanced_headers])
             
             # Format header row - bold, centered, colored background
-            self.worksheet.format('A1:K1', {
+            self.worksheet.format('A1:T1', {
                 'backgroundColor': {'red': 0.2, 'green': 0.4, 'blue': 0.8},
                 'textFormat': {
                     'bold': True,
