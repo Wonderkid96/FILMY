@@ -3,6 +3,93 @@ import streamlit as st
 from typing import Dict, List, Optional, Tuple
 from .config import TMDB_API_KEY, TMDB_BASE_URL, TMDB_IMAGE_BASE_URL, MOVIE_GENRES, TV_GENRES
 
+# Language code mapping for common languages
+LANGUAGE_MAPPING = {
+    'en': 'English',
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'it': 'Italian',
+    'pt': 'Portuguese',
+    'ru': 'Russian',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'zh': 'Chinese',
+    'hi': 'Hindi',
+    'ar': 'Arabic',
+    'nl': 'Dutch',
+    'sv': 'Swedish',
+    'no': 'Norwegian',
+    'da': 'Danish',
+    'fi': 'Finnish',
+    'pl': 'Polish',
+    'tr': 'Turkish',
+    'th': 'Thai',
+    'vi': 'Vietnamese',
+    'id': 'Indonesian',
+    'ms': 'Malay',
+    'he': 'Hebrew',
+    'cs': 'Czech',
+    'hu': 'Hungarian',
+    'ro': 'Romanian',
+    'bg': 'Bulgarian',
+    'hr': 'Croatian',
+    'sr': 'Serbian',
+    'sk': 'Slovak',
+    'sl': 'Slovenian',
+    'et': 'Estonian',
+    'lv': 'Latvian',
+    'lt': 'Lithuanian',
+    'uk': 'Ukrainian',
+    'be': 'Belarusian',
+    'mk': 'Macedonian',
+    'sq': 'Albanian',
+    'mt': 'Maltese',
+    'is': 'Icelandic',
+    'ga': 'Irish',
+    'cy': 'Welsh',
+    'eu': 'Basque',
+    'ca': 'Catalan',
+    'gl': 'Galician',
+    'fa': 'Persian',
+    'ur': 'Urdu',
+    'bn': 'Bengali',
+    'ta': 'Tamil',
+    'te': 'Telugu',
+    'ml': 'Malayalam',
+    'kn': 'Kannada',
+    'gu': 'Gujarati',
+    'pa': 'Punjabi',
+    'mr': 'Marathi',
+    'ne': 'Nepali',
+    'si': 'Sinhala',
+    'my': 'Burmese',
+    'km': 'Khmer',
+    'lo': 'Lao',
+    'ka': 'Georgian',
+    'hy': 'Armenian',
+    'az': 'Azerbaijani',
+    'kk': 'Kazakh',
+    'ky': 'Kyrgyz',
+    'uz': 'Uzbek',
+    'tg': 'Tajik',
+    'mn': 'Mongolian',
+    'bo': 'Tibetan',
+    'dz': 'Dzongkha',
+    'am': 'Amharic',
+    'sw': 'Swahili',
+    'zu': 'Zulu',
+    'af': 'Afrikaans',
+    'xh': 'Xhosa',
+    'st': 'Sotho',
+    'tn': 'Tswana',
+    've': 'Venda',
+    'ts': 'Tsonga',
+    'ss': 'Swati',
+    'nr': 'Ndebele',
+    'nso': 'Northern Sotho'
+}
+
 class TMDBApi:
     def __init__(self):
         self.api_key = TMDB_API_KEY
@@ -104,6 +191,9 @@ class TMDBApi:
     
     def format_movie_data(self, movie: Dict) -> Dict:
         """Format movie data for display"""
+        original_language = movie.get('original_language', 'en')
+        language_name = LANGUAGE_MAPPING.get(original_language, original_language.upper())
+        
         return {
             'id': movie.get('id'),
             'title': movie.get('title', 'Unknown Title'),
@@ -120,11 +210,16 @@ class TMDBApi:
             'runtime': movie.get('runtime'),
             'budget': movie.get('budget'),
             'revenue': movie.get('revenue'),
+            'original_language': original_language,
+            'language_name': language_name,
             'type': 'movie'
         }
     
     def format_tv_data(self, tv_show: Dict) -> Dict:
         """Format TV show data for display"""
+        original_language = tv_show.get('original_language', 'en')
+        language_name = LANGUAGE_MAPPING.get(original_language, original_language.upper())
+        
         return {
             'id': tv_show.get('id'),
             'title': tv_show.get('name', 'Unknown Title'),
@@ -140,5 +235,7 @@ class TMDBApi:
             'number_of_seasons': tv_show.get('number_of_seasons'),
             'number_of_episodes': tv_show.get('number_of_episodes'),
             'episode_run_time': tv_show.get('episode_run_time', []),
+            'original_language': original_language,
+            'language_name': language_name,
             'type': 'tv'
         } 

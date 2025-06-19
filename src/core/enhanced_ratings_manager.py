@@ -181,9 +181,62 @@ class EnhancedRatingsManager:
     
     def get_recommendations(self, limit: int = 15) -> List[Dict]:
         """Get personalized recommendations based on user ratings"""
-        # This is a placeholder - in a real system you'd use the recommendation engine
-        # For now, return empty list to prevent errors
-        return []
+        from .tmdb_api import TMDBApi
+        
+        if self.df.empty:
+            return []
+        
+        # Get highly rated content (3+ stars)
+        good_ratings = self.df[self.df['my_rating'] >= 3]
+        
+        if good_ratings.empty:
+            return []
+        
+        tmdb = TMDBApi()
+        recommendations = []
+        
+        try:
+            # Get recommendations based on highly rated movies/shows
+            for _, item in good_ratings.iterrows():
+                if item['type'] == 'movie':
+                    similar = tmdb.get_similar_movies(item['tmdb_id'])
+                    recs = tmdb.get_movie_recommendations(item['tmdb_id'])
+                else:
+                    similar = tmdb.get_similar_tv(item['tmdb_id'])
+                    recs = tmdb.get_tv_recommendations(item['tmdb_id'])
+                
+                # Process similar content
+                if similar and 'results' in similar:
+                    for rec in similar['results'][:3]:  # Top 3 similar
+                        if not self.is_already_rated(rec['id'], item['type']):
+                            rec_data = tmdb.format_movie_data(rec) if item['type'] == 'movie' else tmdb.format_tv_data(rec)
+                            if rec_data:
+                                recommendations.append(rec_data)
+                
+                # Process TMDB recommendations
+                if recs and 'results' in recs:
+                    for rec in recs['results'][:2]:  # Top 2 recommendations
+                        if not self.is_already_rated(rec['id'], item['type']):
+                            rec_data = tmdb.format_movie_data(rec) if item['type'] == 'movie' else tmdb.format_tv_data(rec)
+                            if rec_data:
+                                recommendations.append(rec_data)
+        
+        except Exception as e:
+            print(f"Error getting recommendations: {e}")
+            return []
+        
+        # Remove duplicates and limit results
+        seen = set()
+        unique_recs = []
+        for rec in recommendations:
+            key = (rec['id'], rec['type'])
+            if key not in seen:
+                seen.add(key)
+                unique_recs.append(rec)
+                if len(unique_recs) >= limit:
+                    break
+        
+        return unique_recs
     
     def get_user_rating(self, tmdb_id: int, content_type: str) -> int:
         """Get user's rating for a specific item"""

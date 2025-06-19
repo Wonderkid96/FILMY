@@ -311,6 +311,12 @@ def display_content_card(item: Dict, show_actions: bool = True):
         with col_type:
             content_type = "🎬 Movie" if item["type"] == "movie" else "📺 TV Show"
             st.markdown(f"{content_type}")
+        
+        # Language info (very important!)
+        if item.get("language_name"):
+            st.markdown(f"🌍 **Language:** {item['language_name']}")
+        elif item.get("original_language"):
+            st.markdown(f"🌍 **Language:** {item['original_language'].upper()}")
 
         # Genres
         if item.get("genres"):
@@ -415,39 +421,15 @@ def show_discover_page():
         if content_type in ["Both Movies & TV Shows", "Movies Only"]:
             movies = st.session_state.tmdb.get_popular_movies()
             for movie in movies.get("results", [])[:10]:
-                movie_data = {
-                    "id": movie["id"],
-                    "title": movie["title"],
-                    "type": "movie",
-                    "poster_path": (
-                        f"{TMDB_IMAGE_BASE_URL}{movie['poster_path']}"
-                        if movie.get("poster_path")
-                        else None
-                    ),
-                    "overview": movie.get("overview", ""),
-                    "vote_average": movie.get("vote_average", 0),
-                    "release_date": movie.get("release_date", ""),
-                    "genres": [],
-                }
+                # Use the proper formatting method to get language info
+                movie_data = st.session_state.tmdb.format_movie_data(movie)
                 all_content.append(movie_data)
 
         if content_type in ["Both Movies & TV Shows", "TV Shows Only"]:
             tv_shows = st.session_state.tmdb.get_popular_tv()
             for show in tv_shows.get("results", [])[:10]:
-                show_data = {
-                    "id": show["id"],
-                    "title": show["name"],
-                    "type": "tv",
-                    "poster_path": (
-                        f"{TMDB_IMAGE_BASE_URL}{show['poster_path']}"
-                        if show.get("poster_path")
-                        else None
-                    ),
-                    "overview": show.get("overview", ""),
-                    "vote_average": show.get("vote_average", 0),
-                    "release_date": show.get("first_air_date", ""),
-                    "genres": [],
-                }
+                # Use the proper formatting method to get language info
+                show_data = st.session_state.tmdb.format_tv_data(show)
                 all_content.append(show_data)
 
         # Shuffle for variety
@@ -502,38 +484,12 @@ def show_search_page():
 
             # Process movie results
             for movie in movie_results.get("results", [])[:10]:
-                movie_data = {
-                    "id": movie["id"],
-                    "title": movie["title"],
-                    "type": "movie",
-                    "poster_path": (
-                        f"{TMDB_IMAGE_BASE_URL}{movie['poster_path']}"
-                        if movie.get("poster_path")
-                        else None
-                    ),
-                    "overview": movie.get("overview", ""),
-                    "vote_average": movie.get("vote_average", 0),
-                    "release_date": movie.get("release_date", ""),
-                    "genres": [],
-                }
+                movie_data = st.session_state.tmdb.format_movie_data(movie)
                 all_results.append(movie_data)
 
             # Process TV results
             for show in tv_results.get("results", [])[:10]:
-                show_data = {
-                    "id": show["id"],
-                    "title": show["name"],
-                    "type": "tv",
-                    "poster_path": (
-                        f"{TMDB_IMAGE_BASE_URL}{show['poster_path']}"
-                        if show.get("poster_path")
-                        else None
-                    ),
-                    "overview": show.get("overview", ""),
-                    "vote_average": show.get("vote_average", 0),
-                    "release_date": show.get("first_air_date", ""),
-                    "genres": [],
-                }
+                show_data = st.session_state.tmdb.format_tv_data(show)
                 all_results.append(show_data)
 
             # Sort by rating
