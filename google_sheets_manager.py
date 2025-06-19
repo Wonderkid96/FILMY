@@ -71,24 +71,366 @@ class GoogleSheetsManager:
                 self.worksheet = self.sheet.worksheet(self.worksheet_name)
                 # Check if headers exist, if not add them
                 if self.worksheet.row_count == 0 or not self.worksheet.row_values(1):
-                    self.worksheet.append_row(CSV_HEADERS)
+                    self._setup_sophisticated_sheet()
                 elif self.worksheet.row_values(1) != CSV_HEADERS:
                     # Headers exist but are different, update them
-                    self.worksheet.update('A1:K1', [CSV_HEADERS])
+                    self._setup_sophisticated_sheet()
             except gspread.WorksheetNotFound:
                 self.worksheet = self.sheet.add_worksheet(
                     title=self.worksheet_name, 
                     rows=1000, 
                     cols=len(CSV_HEADERS)
                 )
-                # Add headers
-                self.worksheet.append_row(CSV_HEADERS)
+                # Setup sophisticated formatting
+                self._setup_sophisticated_sheet()
             
             return True
             
         except Exception as e:
             st.error(f"Failed to connect to Google Sheets: {e}")
             return False
+    
+    def _setup_sophisticated_sheet(self):
+        """Set up sophisticated sheet formatting with colors and layout"""
+        try:
+            # Clear existing content
+            self.worksheet.clear()
+            
+            # Add headers with enhanced formatting
+            enhanced_headers = [
+                'TMDB ID', 'Title', 'Type', 'Release Date', 'Genres', 
+                'TMDB Rating', 'My Rating', 'Rating Label', 'Date Rated', 
+                'Overview', 'Poster URL'
+            ]
+            
+            # Set headers
+            self.worksheet.update('A1:K1', [enhanced_headers])
+            
+            # Format header row - bold, centered, colored background
+            self.worksheet.format('A1:K1', {
+                'backgroundColor': {'red': 0.2, 'green': 0.4, 'blue': 0.8},
+                'textFormat': {
+                    'bold': True,
+                    'foregroundColor': {'red': 1, 'green': 1, 'blue': 1},
+                    'fontSize': 12
+                },
+                'horizontalAlignment': 'CENTER',
+                'verticalAlignment': 'MIDDLE'
+            })
+            
+            # Set column widths for better readability
+            requests = [
+                {
+                    'updateDimensionProperties': {
+                        'range': {
+                            'sheetId': self.worksheet.id,
+                            'dimension': 'COLUMNS',
+                            'startIndex': 0,  # TMDB ID
+                            'endIndex': 1
+                        },
+                        'properties': {'pixelSize': 80}
+                    }
+                },
+                {
+                    'updateDimensionProperties': {
+                        'range': {
+                            'sheetId': self.worksheet.id,
+                            'dimension': 'COLUMNS',
+                            'startIndex': 1,  # Title
+                            'endIndex': 2
+                        },
+                        'properties': {'pixelSize': 200}
+                    }
+                },
+                {
+                    'updateDimensionProperties': {
+                        'range': {
+                            'sheetId': self.worksheet.id,
+                            'dimension': 'COLUMNS',
+                            'startIndex': 2,  # Type
+                            'endIndex': 3
+                        },
+                        'properties': {'pixelSize': 80}
+                    }
+                },
+                {
+                    'updateDimensionProperties': {
+                        'range': {
+                            'sheetId': self.worksheet.id,
+                            'dimension': 'COLUMNS',
+                            'startIndex': 3,  # Release Date
+                            'endIndex': 4
+                        },
+                        'properties': {'pixelSize': 100}
+                    }
+                },
+                {
+                    'updateDimensionProperties': {
+                        'range': {
+                            'sheetId': self.worksheet.id,
+                            'dimension': 'COLUMNS',
+                            'startIndex': 4,  # Genres
+                            'endIndex': 5
+                        },
+                        'properties': {'pixelSize': 150}
+                    }
+                },
+                {
+                    'updateDimensionProperties': {
+                        'range': {
+                            'sheetId': self.worksheet.id,
+                            'dimension': 'COLUMNS',
+                            'startIndex': 6,  # My Rating
+                            'endIndex': 7
+                        },
+                        'properties': {'pixelSize': 90}
+                    }
+                },
+                {
+                    'updateDimensionProperties': {
+                        'range': {
+                            'sheetId': self.worksheet.id,
+                            'dimension': 'COLUMNS',
+                            'startIndex': 7,  # Rating Label
+                            'endIndex': 8
+                        },
+                        'properties': {'pixelSize': 120}
+                    }
+                }
+            ]
+            
+            # Apply column width requests
+            self.worksheet.spreadsheet.batch_update({'requests': requests})
+            
+            # Add conditional formatting for ratings
+            self._add_rating_conditional_formatting()
+            
+            # Freeze header row
+            self.worksheet.freeze(rows=1)
+            
+            # Add summary section
+            self._add_summary_section()
+            
+        except Exception as e:
+            st.warning(f"Could not apply sophisticated formatting: {e}")
+            # Fallback to basic headers
+            self.worksheet.update('A1:K1', [CSV_HEADERS])
+    
+    def _add_rating_conditional_formatting(self):
+        """Add conditional formatting for rating colors"""
+        try:
+            # Color coding for My Rating column (column G)
+            rating_rules = [
+                {
+                    'range': {
+                        'sheetId': self.worksheet.id,
+                        'startRowIndex': 1,
+                        'endRowIndex': 1000,
+                        'startColumnIndex': 6,  # My Rating column
+                        'endColumnIndex': 7
+                    },
+                    'booleanRule': {
+                        'condition': {
+                            'type': 'NUMBER_EQ',
+                            'values': [{'userEnteredValue': '4'}]
+                        },
+                        'format': {
+                            'backgroundColor': {'red': 1, 'green': 0.84, 'blue': 0},  # Gold
+                            'textFormat': {'bold': True}
+                        }
+                    }
+                },
+                {
+                    'range': {
+                        'sheetId': self.worksheet.id,
+                        'startRowIndex': 1,
+                        'endRowIndex': 1000,
+                        'startColumnIndex': 6,
+                        'endColumnIndex': 7
+                    },
+                    'booleanRule': {
+                        'condition': {
+                            'type': 'NUMBER_EQ',
+                            'values': [{'userEnteredValue': '3'}]
+                        },
+                        'format': {
+                            'backgroundColor': {'red': 0.2, 'green': 0.8, 'blue': 0.2},  # Green
+                            'textFormat': {'bold': True}
+                        }
+                    }
+                },
+                {
+                    'range': {
+                        'sheetId': self.worksheet.id,
+                        'startRowIndex': 1,
+                        'endRowIndex': 1000,
+                        'startColumnIndex': 6,
+                        'endColumnIndex': 7
+                    },
+                    'booleanRule': {
+                        'condition': {
+                            'type': 'NUMBER_EQ',
+                            'values': [{'userEnteredValue': '2'}]
+                        },
+                        'format': {
+                            'backgroundColor': {'red': 1, 'green': 0.65, 'blue': 0},  # Orange
+                            'textFormat': {'bold': True}
+                        }
+                    }
+                },
+                {
+                    'range': {
+                        'sheetId': self.worksheet.id,
+                        'startRowIndex': 1,
+                        'endRowIndex': 1000,
+                        'startColumnIndex': 6,
+                        'endColumnIndex': 7
+                    },
+                    'booleanRule': {
+                        'condition': {
+                            'type': 'NUMBER_EQ',
+                            'values': [{'userEnteredValue': '1'}]
+                        },
+                        'format': {
+                            'backgroundColor': {'red': 1, 'green': 0.27, 'blue': 0.27},  # Red
+                            'textFormat': {'bold': True, 'foregroundColor': {'red': 1, 'green': 1, 'blue': 1}}
+                        }
+                    }
+                },
+                {
+                    'range': {
+                        'sheetId': self.worksheet.id,
+                        'startRowIndex': 1,
+                        'endRowIndex': 1000,
+                        'startColumnIndex': 6,
+                        'endColumnIndex': 7
+                    },
+                    'booleanRule': {
+                        'condition': {
+                            'type': 'NUMBER_EQ',
+                            'values': [{'userEnteredValue': '0'}]
+                        },
+                        'format': {
+                            'backgroundColor': {'red': 0.8, 'green': 0.8, 'blue': 1},  # Light blue for watchlist
+                            'textFormat': {'italic': True}
+                        }
+                    }
+                }
+            ]
+            
+            # Apply conditional formatting
+            self.worksheet.spreadsheet.batch_update({
+                'requests': [{'addConditionalFormatRule': {'rule': rule, 'index': i}} 
+                           for i, rule in enumerate(rating_rules)]
+            })
+            
+        except Exception as e:
+            st.warning(f"Could not apply conditional formatting: {e}")
+    
+    def _format_new_row(self, row_number: int):
+        """Apply formatting to a newly added row"""
+        try:
+            # Alternate row colors for better readability
+            if row_number % 2 == 0:
+                bg_color = {'red': 0.95, 'green': 0.95, 'blue': 0.95}
+            else:
+                bg_color = {'red': 1, 'green': 1, 'blue': 1}
+            
+            # Format the entire row
+            self.worksheet.format(f'A{row_number}:K{row_number}', {
+                'backgroundColor': bg_color,
+                'textFormat': {'fontSize': 10},
+                'borders': {
+                    'bottom': {'style': 'SOLID', 'width': 1, 'color': {'red': 0.8, 'green': 0.8, 'blue': 0.8}}
+                }
+            })
+            
+            # Center align certain columns
+            self.worksheet.format(f'A{row_number}:A{row_number}', {'horizontalAlignment': 'CENTER'})  # TMDB ID
+            self.worksheet.format(f'C{row_number}:C{row_number}', {'horizontalAlignment': 'CENTER'})  # Type
+            self.worksheet.format(f'D{row_number}:D{row_number}', {'horizontalAlignment': 'CENTER'})  # Release Date
+            self.worksheet.format(f'F{row_number}:G{row_number}', {'horizontalAlignment': 'CENTER'})  # Ratings
+            self.worksheet.format(f'I{row_number}:I{row_number}', {'horizontalAlignment': 'CENTER'})  # Date Rated
+            
+        except Exception as e:
+            # Formatting failed, but don't break the main functionality
+            pass
+    
+    def _add_summary_section(self):
+        """Add a summary statistics section to the sheet"""
+        try:
+            # Add summary headers in column M
+            summary_data = [
+                ['📊 FILMY STATS', ''],
+                ['Total Ratings:', '=COUNTA(G:G)-1'],
+                ['Perfect (4⭐):', '=COUNTIF(G:G,4)'],
+                ['Good (3⭐):', '=COUNTIF(G:G,3)'],
+                ['OK (2⭐):', '=COUNTIF(G:G,2)'],
+                ['Hate (1⭐):', '=COUNTIF(G:G,1)'],
+                ['Watchlist:', '=COUNTIF(G:G,0)'],
+                ['Average Rating:', '=AVERAGE(G2:G1000)'],
+                ['Movies Rated:', '=COUNTIFS(C:C,"movie",G:G,">0")'],
+                ['TV Shows Rated:', '=COUNTIFS(C:C,"tv",G:G,">0")'],
+                ['Last Updated:', '=NOW()']
+            ]
+            
+            # Add summary data starting from M1
+            for i, row in enumerate(summary_data, 1):
+                self.worksheet.update(f'M{i}:N{i}', [row])
+            
+            # Format summary section
+            self.worksheet.format('M1:N1', {
+                'backgroundColor': {'red': 0.8, 'green': 0.2, 'blue': 0.2},
+                'textFormat': {
+                    'bold': True,
+                    'foregroundColor': {'red': 1, 'green': 1, 'blue': 1},
+                    'fontSize': 14
+                },
+                'horizontalAlignment': 'CENTER'
+            })
+            
+            # Format stats rows
+            self.worksheet.format('M2:N11', {
+                'backgroundColor': {'red': 0.95, 'green': 0.95, 'blue': 1},
+                'textFormat': {'fontSize': 11, 'bold': True},
+                'borders': {
+                    'top': {'style': 'SOLID', 'width': 1},
+                    'bottom': {'style': 'SOLID', 'width': 1},
+                    'left': {'style': 'SOLID', 'width': 1},
+                    'right': {'style': 'SOLID', 'width': 1}
+                }
+            })
+            
+            # Set column widths for summary
+            requests = [
+                {
+                    'updateDimensionProperties': {
+                        'range': {
+                            'sheetId': self.worksheet.id,
+                            'dimension': 'COLUMNS',
+                            'startIndex': 12,  # Column M
+                            'endIndex': 13
+                        },
+                        'properties': {'pixelSize': 150}
+                    }
+                },
+                {
+                    'updateDimensionProperties': {
+                        'range': {
+                            'sheetId': self.worksheet.id,
+                            'dimension': 'COLUMNS',
+                            'startIndex': 13,  # Column N
+                            'endIndex': 14
+                        },
+                        'properties': {'pixelSize': 120}
+                    }
+                }
+            ]
+            
+            self.worksheet.spreadsheet.batch_update({'requests': requests})
+            
+        except Exception as e:
+            st.warning(f"Could not add summary section: {e}")
     
     def is_connected(self) -> bool:
         """Check if connected to Google Sheets"""
@@ -116,6 +458,10 @@ class GoogleSheetsManager:
             ]
             
             self.worksheet.append_row(row_data)
+            
+            # Apply formatting to the new row
+            self._format_new_row(self.worksheet.row_count)
+            
             return True
             
         except Exception as e:

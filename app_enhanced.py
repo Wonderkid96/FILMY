@@ -700,25 +700,56 @@ def show_film_discovery_page():
             st.session_state.discovery_index += 1
             st.rerun()
     else:
-        # The big question
-        st.markdown(f"### 🤔 Have you seen **{current_film['title']}** ({year})?")
+        # The big question - adapted for couple mode
+        current_user = st.session_state.get('current_user', 'Toby')
         
-        col1, col2, col3 = st.columns([1, 1, 1])
-        
-        with col1:
-            if st.button("✅ Yes, I've seen it", key="seen_yes", type="primary"):
-                st.session_state.asking_for_rating = True
-                st.rerun()
-        
-        with col2:
-            if st.button("❌ No, haven't seen it", key="seen_no"):
-                st.session_state.asking_want_to_see = True
-                st.rerun()
-        
-        with col3:
-            if st.button("⏭️ Skip this film", key="skip_film"):
-                st.session_state.discovery_index += 1
-                st.rerun()
+        if current_user == "Both":
+            st.markdown(f"### 🤔 Who's seen **{current_film['title']}** ({year})?")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                if st.button("👨 Toby seen it", key="toby_seen", type="primary"):
+                    st.session_state.asking_for_rating = True
+                    st.session_state.rating_user = "Toby"
+                    st.rerun()
+            
+            with col2:
+                if st.button("👩 Taz seen it", key="taz_seen", type="primary"):
+                    st.session_state.asking_for_rating = True
+                    st.session_state.rating_user = "Taz"
+                    st.rerun()
+            
+            with col3:
+                if st.button("👫 Both seen it", key="both_seen", type="primary"):
+                    st.session_state.asking_for_rating = True
+                    st.session_state.rating_user = "Both"
+                    st.rerun()
+            
+            with col4:
+                if st.button("❌ Neither seen", key="neither_seen"):
+                    st.session_state.asking_want_to_see = True
+                    st.rerun()
+        else:
+            st.markdown(f"### 🤔 Have you seen **{current_film['title']}** ({year})?")
+            
+            col1, col2, col3 = st.columns([1, 1, 1])
+            
+            with col1:
+                if st.button("✅ Yes, I've seen it", key="seen_yes", type="primary"):
+                    st.session_state.asking_for_rating = True
+                    st.session_state.rating_user = current_user
+                    st.rerun()
+            
+            with col2:
+                if st.button("❌ No, haven't seen it", key="seen_no"):
+                    st.session_state.asking_want_to_see = True
+                    st.rerun()
+            
+            with col3:
+                if st.button("⏭️ Skip this film", key="skip_film"):
+                    st.session_state.discovery_index += 1
+                    st.rerun()
     
     # "Want to see" interface for unseen films
     if hasattr(st.session_state, 'asking_want_to_see') and st.session_state.asking_want_to_see:
@@ -789,7 +820,13 @@ def show_film_discovery_page():
     # Rating interface if they've seen it
     if hasattr(st.session_state, 'asking_for_rating') and st.session_state.asking_for_rating:
         st.markdown("---")
-        st.markdown(f"### 🌟 How would you rate **{current_film['title']}**?")
+        rating_user = st.session_state.get('rating_user', 'You')
+        
+        if rating_user == "Both":
+            st.markdown(f"### 🌟 How would you both rate **{current_film['title']}**?")
+            st.info("💡 Rate this as a couple - what did you both think overall?")
+        else:
+            st.markdown(f"### 🌟 How would **{rating_user}** rate **{current_film['title']}**?")
         
         col1, col2, col3, col4 = st.columns(4)
         
@@ -840,6 +877,21 @@ def show_film_discovery_page():
 def main():
     """Enhanced main application"""
     with st.sidebar:
+        st.markdown("### 👥 Who's Using FILMY?")
+        current_user = st.selectbox(
+            "Select user:",
+            ["Toby", "Taz", "Both"],
+            key="current_user"
+        )
+        
+        if current_user == "Both":
+            st.info("🔥 **Couple Mode**: Find films you'll both love!")
+        else:
+            st.info(f"👋 Hey **{current_user}**!")
+        
+        st.session_state.current_user = current_user
+        st.divider()
+        
         st.markdown("### 🎬 FILMY Navigation")
         
         selected = option_menu(
