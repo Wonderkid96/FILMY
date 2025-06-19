@@ -6,7 +6,7 @@ from datetime import datetime
 
 from core.config import (
     APP_TITLE, APP_ICON, RATING_LABELS, RATING_COLORS, 
-    GENRE_ICONS, TMDB_BASE_URL, TMDB_IMAGE_BASE_URL
+    TMDB_BASE_URL, TMDB_IMAGE_BASE_URL
 )
 from core.tmdb_api import TMDBApi
 from core.enhanced_ratings_manager import EnhancedRatingsManager
