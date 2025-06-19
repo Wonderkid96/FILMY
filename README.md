@@ -69,11 +69,13 @@ A sophisticated movie and TV show recommendation system with **Couples Edition**
 
 4. **Run the application**
    ```bash
-   streamlit run app.py
+   streamlit run main.py
    ```
 
-5. **Open your browser**
-   - The app will automatically open at `http://localhost:8501`
+5. **Choose your experience**
+   - The app will open at `http://localhost:8501` with a beautiful mode selector
+   - **💕 Couples Edition**: Advanced user tracking for both partners (recommended!)
+   - **🎬 Original Mode**: Classic single-user experience
    - Start exploring and rating content to get personalized recommendations!
 
 ## 🔑 Getting Your TMDB API Key
@@ -111,11 +113,13 @@ A sophisticated movie and TV show recommendation system with **Couples Edition**
 
 ### Core Components
 
-- **`app.py`**: Main Streamlit application with UI components
-- **`tmdb_api.py`**: TMDB API wrapper for fetching movie/TV data
-- **`recommendation_engine.py`**: ML-based recommendation algorithms
-- **`user_preferences.py`**: User preference management and persistence
-- **`config.py`**: Configuration settings and constants
+- **`main.py`**: Main application entry point with mode selection
+- **`src/apps/`**: Streamlit applications (couples & original modes)
+- **`src/core/tmdb_api.py`**: TMDB API wrapper for fetching movie/TV data
+- **`src/core/recommendation_engine.py`**: ML-based recommendation algorithms
+- **`src/core/user_preferences.py`**: User preference management and persistence
+- **`src/core/advanced_user_tracker.py`**: Couples tracking and compatibility analysis
+- **`src/core/config.py`**: Configuration settings and constants
 
 ### Recommendation Algorithm
 
