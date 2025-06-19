@@ -336,16 +336,19 @@ def display_content_card(item: Dict, show_actions: bool = True):
         if show_actions:
             st.markdown("**Rate this content:**")
             st.markdown('<div class="rating-buttons">', unsafe_allow_html=True)
-            col1, col2, col3, col4, col5 = st.columns(5)
 
-            rating_buttons = [
+            # After watching ratings
+            st.markdown("*After Watching:*")
+            col1, col2, col3, col4 = st.columns(4)
+
+            watched_ratings = [
                 (1, "😤 Hate", "#FF4444"),
                 (2, "🤷 OK", "#FFA500"),
                 (3, "👍 Good", "#32CD32"),
                 (4, "🌟 Perfect", "#FFD700"),
             ]
 
-            for i, (rating_value, label, color) in enumerate(rating_buttons):
+            for i, (rating_value, label, color) in enumerate(watched_ratings):
                 col = [col1, col2, col3, col4][i]
                 with col:
                     if st.button(
@@ -375,11 +378,35 @@ def display_content_card(item: Dict, show_actions: bool = True):
                         except Exception as e:
                             st.error(f"❌ Error saving rating: {str(e)}")
 
-            # Not Interested button
-            with col5:
+            # Before watching decisions
+            st.markdown("*Before Watching:*")
+            col1, col2 = st.columns(2)
+
+            with col1:
                 if st.button(
-                    "🚫 Skip",
-                    key=f"skip_{item['id']}_{item['type']}",
+                    "👀 Want to See",
+                    key=f"want_{item['id']}_{item['type']}",
+                    help="Add to watchlist",
+                ):
+                    try:
+                        success = st.session_state.ratings_manager.add_rating(
+                            item["id"],
+                            item["title"],
+                            item["type"],
+                            0,
+                            item,
+                        )
+                        if success:
+                            st.success("✅ Added to watchlist!")
+                            time.sleep(1)
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Error: {str(e)}")
+
+            with col2:
+                if st.button(
+                    "❌ Don't Want to See",
+                    key=f"dont_want_{item['id']}_{item['type']}",
                     help="Mark as not interested",
                 ):
                     try:
@@ -387,7 +414,7 @@ def display_content_card(item: Dict, show_actions: bool = True):
                             item["id"],
                             item["title"],
                             item["type"],
-                            -1,  # Special value for "not interested"
+                            -1,
                             item,
                         )
                         if success:
@@ -577,7 +604,10 @@ def show_quick_discovery_page():
 
         # Action buttons
         st.markdown("---")
-        col1, col2, col3, col4, col5 = st.columns(5)
+
+        # Main rating buttons (after watching)
+        st.markdown("**After Watching:**")
+        col1, col2, col3, col4 = st.columns(4)
 
         with col1:
             if st.button("😍 Perfect", key="perfect", use_container_width=True):
@@ -595,7 +625,21 @@ def show_quick_discovery_page():
             if st.button("👎 Hate", key="hate", use_container_width=True):
                 rate_and_next(current_movie, 1)
 
-        with col5:
+        # Pre-watch decisions
+        st.markdown("**Before Watching:**")
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            if st.button("👀 Want to See", key="want_to_see", use_container_width=True):
+                rate_and_next(current_movie, 0)
+
+        with col2:
+            if st.button(
+                "❌ Don't Want to See", key="dont_want_to_see", use_container_width=True
+            ):
+                rate_and_next(current_movie, -1)
+
+        with col3:
             if st.button("⏭️ Skip", key="skip", use_container_width=True):
                 next_movie()
 
@@ -683,65 +727,105 @@ def show_my_ratings_page():
             )
             return
 
-        # Filter out "not interested" ratings
-        positive_ratings = ratings_df[ratings_df["my_rating"] > 0]
+        # Filter out "want to see" and "don't want to see" for main stats
+        watched_ratings = ratings_df[ratings_df["my_rating"] > 0]
 
-        if positive_ratings.empty:
-            st.info("You haven't given any positive ratings yet!")
+        # Separate watchlist items
+        watchlist = ratings_df[ratings_df["my_rating"] == 0]
+        not_interested = ratings_df[ratings_df["my_rating"] == -1]
+
+        if watched_ratings.empty and watchlist.empty and not_interested.empty:
+            st.info("You haven't rated any content yet!")
             return
 
         # Statistics
         st.markdown("### 📈 Your Stats")
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
 
         with col1:
             st.markdown('<div class="stats-card">', unsafe_allow_html=True)
-            st.metric("Total Rated", len(positive_ratings))
+            st.metric("Watched", len(watched_ratings))
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col2:
             st.markdown('<div class="stats-card">', unsafe_allow_html=True)
-            movies_count = len(positive_ratings[positive_ratings["type"] == "movie"])
-            st.metric("Movies", movies_count)
+            st.metric("Want to See", len(watchlist))
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col3:
             st.markdown('<div class="stats-card">', unsafe_allow_html=True)
-            tv_count = len(positive_ratings[positive_ratings["type"] == "tv"])
-            st.metric("TV Shows", tv_count)
+            movies_count = len(watched_ratings[watched_ratings["type"] == "movie"])
+            st.metric("Movies", movies_count)
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col4:
             st.markdown('<div class="stats-card">', unsafe_allow_html=True)
-            avg_rating = positive_ratings["my_rating"].mean()
-            st.metric("Avg Rating", f"{avg_rating:.1f}/4")
+            tv_count = len(watched_ratings[watched_ratings["type"] == "tv"])
+            st.metric("TV Shows", tv_count)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with col5:
+            st.markdown('<div class="stats-card">', unsafe_allow_html=True)
+            if not watched_ratings.empty:
+                avg_rating = watched_ratings["my_rating"].mean()
+                st.metric("Avg Rating", f"{avg_rating:.1f}/4")
+            else:
+                st.metric("Avg Rating", "N/A")
             st.markdown("</div>", unsafe_allow_html=True)
 
         # Rating distribution chart
         st.markdown("### 📊 Rating Distribution")
-        rating_counts = positive_ratings["my_rating"].value_counts().sort_index()
 
-        fig = px.bar(
-            x=[RATING_LABELS[i] for i in rating_counts.index],
-            y=rating_counts.values,
-            color=rating_counts.values,
-            color_continuous_scale=["#FF4444", "#FFA500", "#32CD32", "#FFD700"],
-        )
-        fig.update_layout(
-            title="How You Rate Content",
-            xaxis_title="Rating",
-            yaxis_title="Number of Items",
-            showlegend=False,
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        # Show different sections
+        col1, col2 = st.columns(2)
 
-        # Recent ratings
-        st.markdown("### 🕒 Recent Ratings")
-        recent_ratings = positive_ratings.sort_values(
-            "date_rated", ascending=False
-        ).head(10)
+        with col1:
+            if not watched_ratings.empty:
+                st.markdown("**Watched Content:**")
+                rating_counts = watched_ratings["my_rating"].value_counts().sort_index()
+                fig = px.bar(
+                    x=[RATING_LABELS[i] for i in rating_counts.index],
+                    y=rating_counts.values,
+                    color=rating_counts.values,
+                    color_continuous_scale=["#FF4444", "#FFA500", "#32CD32", "#FFD700"],
+                )
+                fig.update_layout(
+                    title="How You Rate Watched Content",
+                    xaxis_title="Rating",
+                    yaxis_title="Number of Items",
+                    showlegend=False,
+                )
+                st.plotly_chart(fig, use_container_width=True)
 
-        for _, rating in recent_ratings.iterrows():
+        with col2:
+            if not watchlist.empty or not not_interested.empty:
+                st.markdown("**Watchlist & Decisions:**")
+                other_counts = {}
+                if not watchlist.empty:
+                    other_counts[0] = len(watchlist)
+                if not not_interested.empty:
+                    other_counts[-1] = len(not_interested)
+
+                if other_counts:
+                    fig2 = px.bar(
+                        x=[RATING_LABELS[i] for i in other_counts.keys()],
+                        y=list(other_counts.values()),
+                        color=list(other_counts.values()),
+                        color_continuous_scale=["#9CA3AF", "#6366F1"],
+                    )
+                    fig2.update_layout(
+                        title="Watchlist & Not Interested",
+                        xaxis_title="Decision",
+                        yaxis_title="Number of Items",
+                        showlegend=False,
+                    )
+                    st.plotly_chart(fig2, use_container_width=True)
+
+        # Recent activity
+        st.markdown("### 🕒 Recent Activity")
+        recent_activity = ratings_df.sort_values("date_rated", ascending=False).head(15)
+
+        for _, rating in recent_activity.iterrows():
             col1, col2, col3 = st.columns([3, 1, 1])
             with col1:
                 content_type = "🎬" if rating["type"] == "movie" else "📺"
