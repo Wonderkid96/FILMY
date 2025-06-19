@@ -259,7 +259,10 @@ def display_content_card(item: Dict, show_actions: bool = True):
 
     # Check if already rated (with safety check)
     already_rated = False
-    if hasattr(st.session_state, 'ratings_manager') and st.session_state.ratings_manager:
+    if (
+        hasattr(st.session_state, "ratings_manager")
+        and st.session_state.ratings_manager
+    ):
         try:
             already_rated = st.session_state.ratings_manager.is_already_rated(
                 item["id"], item["type"]
@@ -311,7 +314,7 @@ def display_content_card(item: Dict, show_actions: bool = True):
         with col_type:
             content_type = "🎬 Movie" if item["type"] == "movie" else "📺 TV Show"
             st.markdown(f"{content_type}")
-        
+
         # Language info (very important!)
         if item.get("language_name"):
             st.markdown(f"🌍 **Language:** {item['language_name']}")
@@ -515,78 +518,94 @@ def show_search_page():
 def show_quick_discovery_page():
     """One-by-one movie discovery flow"""
     st.markdown("## 🚀 Quick Discovery")
-    st.markdown("*Discover movies one at a time - perfect for finding your next watch!*")
-    
+    st.markdown(
+        "*Discover movies one at a time - perfect for finding your next watch!*"
+    )
+
     # Initialize discovery state
     if "discovery_index" not in st.session_state:
         st.session_state.discovery_index = 0
-    
+
     try:
         # Get popular movies
         movies = st.session_state.tmdb.get_popular_movies()
         movie_list = movies.get("results", [])
-        
+
         if not movie_list:
             st.error("No movies available for discovery.")
             return
-        
+
         # Filter out already rated movies
         unrated_movies = []
         for movie in movie_list:
-            if not st.session_state.ratings_manager.is_already_rated(movie["id"], "movie"):
+            if not st.session_state.ratings_manager.is_already_rated(
+                movie["id"], "movie"
+            ):
                 unrated_movies.append(movie)
-        
+
         if not unrated_movies:
-            st.success("🎉 You've rated all popular movies! Check out TV shows or search for more content.")
+            st.success(
+                "🎉 You've rated all popular movies! Check out TV shows or search for more content."
+            )
             return
-        
+
         # Get current movie
-        current_movie = unrated_movies[st.session_state.discovery_index % len(unrated_movies)]
-        
+        current_movie = unrated_movies[
+            st.session_state.discovery_index % len(unrated_movies)
+        ]
+
         # Display movie
         col1, col2 = st.columns([1, 2])
-        
+
         with col1:
             if current_movie.get("poster_path"):
-                st.image(f"{TMDB_IMAGE_BASE_URL}{current_movie['poster_path']}", width=200)
-        
+                st.image(
+                    f"{TMDB_IMAGE_BASE_URL}{current_movie['poster_path']}", width=200
+                )
+
         with col2:
             st.markdown(f"### {current_movie['title']}")
             if current_movie.get("release_date"):
                 st.markdown(f"**Released:** {current_movie['release_date'][:4]}")
             if current_movie.get("vote_average"):
-                st.markdown(f"**TMDB Rating:** ⭐ {current_movie['vote_average']:.1f}/10")
-            st.markdown(f"**Overview:** {current_movie.get('overview', 'No description available.')}")
-        
+                st.markdown(
+                    f"**TMDB Rating:** ⭐ {current_movie['vote_average']:.1f}/10"
+                )
+            st.markdown(
+                f"**Overview:** {current_movie.get('overview', 'No description available.')}"
+            )
+
         # Action buttons
         st.markdown("---")
         col1, col2, col3, col4, col5 = st.columns(5)
-        
+
         with col1:
             if st.button("😍 Perfect", key="perfect", use_container_width=True):
                 rate_and_next(current_movie, 4)
-        
+
         with col2:
             if st.button("👍 Good", key="good", use_container_width=True):
                 rate_and_next(current_movie, 3)
-        
+
         with col3:
             if st.button("😐 OK", key="ok", use_container_width=True):
                 rate_and_next(current_movie, 2)
-        
+
         with col4:
             if st.button("👎 Hate", key="hate", use_container_width=True):
                 rate_and_next(current_movie, 1)
-        
+
         with col5:
             if st.button("⏭️ Skip", key="skip", use_container_width=True):
                 next_movie()
-        
+
         # Progress indicator
         st.markdown("---")
         st.progress((st.session_state.discovery_index + 1) / len(unrated_movies))
-        st.markdown(f"Movie {st.session_state.discovery_index + 1} of {len(unrated_movies)} unrated movies")
-        
+        st.markdown(
+            f"Movie {st.session_state.discovery_index + 1} of {len(unrated_movies)} unrated movies"
+        )
+
     except Exception as e:
         st.error(f"Error in Quick Discovery: {e}")
 
@@ -603,11 +622,11 @@ def rate_and_next(movie, rating):
         "release_date": movie.get("release_date", ""),
         "genres": [],
     }
-    
+
     st.session_state.ratings_manager.add_rating(
         movie["id"], movie["title"], "movie", rating, movie_data
     )
-    
+
     st.success(f"Rated '{movie['title']}' as {RATING_LABELS[rating]}!")
     next_movie()
 
@@ -740,46 +759,60 @@ def show_edit_ratings_page():
     """Edit and manage all your ratings"""
     st.markdown("## ✏️ Edit Your Ratings")
     st.markdown("*View, edit, or delete your movie and TV show ratings*")
-    
+
     try:
         ratings_df = st.session_state.ratings_manager.get_all_ratings()
-        
+
         if ratings_df.empty:
-            st.info("You haven't rated any content yet! Visit the Discover page to start rating.")
+            st.info(
+                "You haven't rated any content yet! Visit the Discover page to start rating."
+            )
             return
-        
+
         # Filter controls
         col1, col2, col3 = st.columns(3)
-        
+
         with col1:
             content_filter = st.selectbox(
-                "Filter by type:",
-                ["All", "Movies", "TV Shows"],
-                index=0
+                "Filter by type:", ["All", "Movies", "TV Shows"], index=0
             )
-        
+
         with col2:
             rating_filter = st.selectbox(
                 "Filter by rating:",
-                ["All Ratings", "Perfect (4)", "Good (3)", "OK (2)", "Hate (1)", "Not Interested"],
-                index=0
+                [
+                    "All Ratings",
+                    "Perfect (4)",
+                    "Good (3)",
+                    "OK (2)",
+                    "Hate (1)",
+                    "Not Interested",
+                ],
+                index=0,
             )
-        
+
         with col3:
             sort_by = st.selectbox(
                 "Sort by:",
-                ["Date Rated (Newest)", "Date Rated (Oldest)", "Title A-Z", "Title Z-A", "Rating (High-Low)", "Rating (Low-High)"],
-                index=0
+                [
+                    "Date Rated (Newest)",
+                    "Date Rated (Oldest)",
+                    "Title A-Z",
+                    "Title Z-A",
+                    "Rating (High-Low)",
+                    "Rating (Low-High)",
+                ],
+                index=0,
             )
-        
+
         # Apply filters
         filtered_df = ratings_df.copy()
-        
+
         if content_filter == "Movies":
             filtered_df = filtered_df[filtered_df["type"] == "movie"]
         elif content_filter == "TV Shows":
             filtered_df = filtered_df[filtered_df["type"] == "tv"]
-        
+
         if rating_filter != "All Ratings":
             if rating_filter == "Perfect (4)":
                 filtered_df = filtered_df[filtered_df["my_rating"] == 4]
@@ -791,7 +824,7 @@ def show_edit_ratings_page():
                 filtered_df = filtered_df[filtered_df["my_rating"] == 1]
             elif rating_filter == "Not Interested":
                 filtered_df = filtered_df[filtered_df["my_rating"] == -1]
-        
+
         # Apply sorting
         if sort_by == "Date Rated (Newest)":
             filtered_df = filtered_df.sort_values("date_rated", ascending=False)
@@ -805,70 +838,78 @@ def show_edit_ratings_page():
             filtered_df = filtered_df.sort_values("my_rating", ascending=False)
         elif sort_by == "Rating (Low-High)":
             filtered_df = filtered_df.sort_values("my_rating", ascending=True)
-        
+
         # Display results
         if filtered_df.empty:
             st.info("No ratings match your current filters.")
             return
-        
+
         st.markdown(f"### 📝 Your Ratings ({len(filtered_df)} items)")
-        
+
         # Pagination
         items_per_page = 10
         total_pages = (len(filtered_df) - 1) // items_per_page + 1
-        
+
         if total_pages > 1:
-            page = st.selectbox(f"Page (1-{total_pages}):", range(1, total_pages + 1), index=0)
+            page = st.selectbox(
+                f"Page (1-{total_pages}):", range(1, total_pages + 1), index=0
+            )
             start_idx = (page - 1) * items_per_page
             end_idx = start_idx + items_per_page
             page_df = filtered_df.iloc[start_idx:end_idx]
         else:
             page_df = filtered_df
-        
+
         # Display each rating with edit options
         for idx, (_, rating) in enumerate(page_df.iterrows()):
             with st.container():
                 st.markdown('<div class="movie-card">', unsafe_allow_html=True)
-                
+
                 col1, col2, col3 = st.columns([2, 3, 2])
-                
+
                 with col1:
                     # Basic info
                     content_type = "🎬" if rating["type"] == "movie" else "📺"
                     st.markdown(f"### {content_type} {rating['title']}")
-                    
+
                     if rating.get("release_date"):
-                        year = rating["release_date"][:4] if rating["release_date"] else "N/A"
+                        year = (
+                            rating["release_date"][:4]
+                            if rating["release_date"]
+                            else "N/A"
+                        )
                         st.markdown(f"**Year:** {year}")
-                    
+
                     if rating.get("tmdb_rating"):
                         st.markdown(f"**TMDB:** ⭐ {rating['tmdb_rating']:.1f}/10")
-                    
+
                     # Current rating
                     current_rating = rating["my_rating"]
                     if current_rating > 0:
                         rating_label = RATING_LABELS.get(current_rating, "Unknown")
-                        st.markdown(f"**Your Rating:** {rating_label} ({current_rating}/4)")
+                        st.markdown(
+                            f"**Your Rating:** {rating_label} ({current_rating}/4)"
+                        )
                     elif current_rating == -1:
                         st.markdown("**Your Rating:** Not Interested")
                     else:
                         st.markdown("**Your Rating:** Unknown")
-                    
+
                     date_rated = rating.get("date_rated", "")
                     if date_rated:
                         st.markdown(f"**Rated on:** {date_rated[:10]}")
-                
+
                 with col2:
                     # Overview
                     overview = rating.get("overview", "No overview available")
                     if len(overview) > 200:
                         overview = overview[:200] + "..."
                     st.markdown(f"**Overview:** {overview}")
-                
+
                 with col3:
                     # Edit controls
                     st.markdown("**Edit Rating:**")
-                    
+
                     # New rating selector
                     rating_options = {
                         "Keep Current": current_rating,
@@ -876,27 +917,35 @@ def show_edit_ratings_page():
                         "👍 Good (3)": 3,
                         "😐 OK (2)": 2,
                         "👎 Hate (1)": 1,
-                        "🚫 Not Interested": -1
+                        "🚫 Not Interested": -1,
                     }
-                    
+
                     new_rating_label = st.selectbox(
                         "New rating:",
                         list(rating_options.keys()),
                         index=0,
-                        key=f"rating_select_{rating['tmdb_id']}_{rating['type']}"
+                        key=f"rating_select_{rating['tmdb_id']}_{rating['type']}",
                     )
-                    
+
                     new_rating = rating_options[new_rating_label]
-                    
+
                     # Action buttons
                     col_update, col_delete = st.columns(2)
-                    
+
                     with col_update:
-                        if st.button("💾 Update", key=f"update_{rating['tmdb_id']}_{rating['type']}", use_container_width=True):
+                        if st.button(
+                            "💾 Update",
+                            key=f"update_{rating['tmdb_id']}_{rating['type']}",
+                            use_container_width=True,
+                        ):
                             if new_rating != current_rating:
                                 try:
-                                    success = st.session_state.ratings_manager.update_rating(
-                                        rating["tmdb_id"], rating["type"], new_rating
+                                    success = (
+                                        st.session_state.ratings_manager.update_rating(
+                                            rating["tmdb_id"],
+                                            rating["type"],
+                                            new_rating,
+                                        )
                                     )
                                     if success:
                                         st.success("✅ Rating updated!")
@@ -908,12 +957,18 @@ def show_edit_ratings_page():
                                     st.error(f"❌ Error: {e}")
                             else:
                                 st.info("No changes to save")
-                    
+
                     with col_delete:
-                        if st.button("🗑️ Delete", key=f"delete_{rating['tmdb_id']}_{rating['type']}", use_container_width=True):
+                        if st.button(
+                            "🗑️ Delete",
+                            key=f"delete_{rating['tmdb_id']}_{rating['type']}",
+                            use_container_width=True,
+                        ):
                             try:
-                                success = st.session_state.ratings_manager.delete_rating(
-                                    rating["tmdb_id"], rating["type"]
+                                success = (
+                                    st.session_state.ratings_manager.delete_rating(
+                                        rating["tmdb_id"], rating["type"]
+                                    )
                                 )
                                 if success:
                                     st.success("✅ Rating deleted!")
@@ -923,14 +978,14 @@ def show_edit_ratings_page():
                                     st.error("❌ Failed to delete rating")
                             except Exception as e:
                                 st.error(f"❌ Error: {e}")
-                
+
                 st.markdown("</div>", unsafe_allow_html=True)
                 st.markdown("---")
-        
+
         # Bulk actions
         st.markdown("### 🔧 Bulk Actions")
         col1, col2, col3 = st.columns(3)
-        
+
         with col1:
             if st.button("📤 Export All Ratings", use_container_width=True):
                 csv_data = ratings_df.to_csv(index=False)
@@ -938,12 +993,12 @@ def show_edit_ratings_page():
                     label="💾 Download CSV",
                     data=csv_data,
                     file_name=f"filmy_ratings_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
+                    mime="text/csv",
                 )
-        
+
         with col2:
             if st.button("🔄 Sync to Google Sheets", use_container_width=True):
-                if hasattr(st.session_state.ratings_manager, 'sync_to_google_sheets'):
+                if hasattr(st.session_state.ratings_manager, "sync_to_google_sheets"):
                     try:
                         st.session_state.ratings_manager.sync_to_google_sheets()
                         st.success("✅ Synced to Google Sheets!")
@@ -951,19 +1006,25 @@ def show_edit_ratings_page():
                         st.error(f"❌ Sync failed: {e}")
                 else:
                     st.info("Google Sheets sync not available")
-        
+
         with col3:
             # Danger zone
-            if st.button("⚠️ Clear All Ratings", use_container_width=True, help="This will delete ALL your ratings!"):
-                st.warning("This feature requires confirmation. Use the individual delete buttons for now.")
-    
+            if st.button(
+                "⚠️ Clear All Ratings",
+                use_container_width=True,
+                help="This will delete ALL your ratings!",
+            ):
+                st.warning(
+                    "This feature requires confirmation. Use the individual delete buttons for now."
+                )
+
     except Exception as e:
         st.error(f"Error loading edit page: {e}")
 
 
 def main():
     """Main application"""
-    
+
     # Initialize session state at the start of main
     if "tmdb" not in st.session_state:
         try:
@@ -971,7 +1032,7 @@ def main():
         except Exception as e:
             st.error(f"Failed to initialize TMDB API: {e}")
             return
-            
+
     if "ratings_manager" not in st.session_state:
         try:
             st.session_state.ratings_manager = EnhancedRatingsManager()
@@ -985,7 +1046,14 @@ def main():
 
         selected = option_menu(
             menu_title=None,
-            options=["🎯 Discover", "🚀 Quick Discovery", "🔍 Search", "⭐ Recommendations", "📊 My Ratings", "✏️ Edit Ratings"],
+            options=[
+                "🎯 Discover",
+                "🚀 Quick Discovery",
+                "🔍 Search",
+                "⭐ Recommendations",
+                "📊 My Ratings",
+                "✏️ Edit Ratings",
+            ],
             icons=["stars", "zap", "search", "heart", "bar-chart", "pencil"],
             menu_icon="cast",
             default_index=0,
