@@ -247,11 +247,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Initialize session state
-if "tmdb" not in st.session_state:
-    st.session_state.tmdb = TMDBApi()
-if "ratings_manager" not in st.session_state:
-    st.session_state.ratings_manager = EnhancedRatingsManager()
+# Session state will be initialized in main() function
 
 
 def display_content_card(item: Dict, show_actions: bool = True):
@@ -260,10 +256,15 @@ def display_content_card(item: Dict, show_actions: bool = True):
 
     col1, col2 = st.columns([1, 3])
 
-    # Check if already rated
-    already_rated = st.session_state.ratings_manager.is_already_rated(
-        item["id"], item["type"]
-    )
+    # Check if already rated (with safety check)
+    already_rated = False
+    if hasattr(st.session_state, 'ratings_manager') and st.session_state.ratings_manager:
+        try:
+            already_rated = st.session_state.ratings_manager.is_already_rated(
+                item["id"], item["type"]
+            )
+        except Exception:
+            already_rated = False
 
     with col1:
         if item["poster_path"]:
@@ -780,6 +781,21 @@ def show_my_ratings_page():
 
 def main():
     """Main application"""
+    
+    # Initialize session state at the start of main
+    if "tmdb" not in st.session_state:
+        try:
+            st.session_state.tmdb = TMDBApi()
+        except Exception as e:
+            st.error(f"Failed to initialize TMDB API: {e}")
+            return
+            
+    if "ratings_manager" not in st.session_state:
+        try:
+            st.session_state.ratings_manager = EnhancedRatingsManager()
+        except Exception as e:
+            st.error(f"Failed to initialize ratings manager: {e}")
+            return
 
     # Sidebar navigation
     with st.sidebar:
