@@ -175,6 +175,16 @@ class EnhancedRatingsManager:
         
         return filtered_df['tmdb_id'].dropna().astype(int).tolist()
     
+    def get_all_ratings(self) -> pd.DataFrame:
+        """Get all ratings data"""
+        return self.df.copy()
+    
+    def get_recommendations(self, limit: int = 15) -> List[Dict]:
+        """Get personalized recommendations based on user ratings"""
+        # This is a placeholder - in a real system you'd use the recommendation engine
+        # For now, return empty list to prevent errors
+        return []
+    
     def get_ratings_by_score(self, min_score: int, content_type: str = None) -> pd.DataFrame:
         """Get all items with rating >= min_score"""
         if self.df.empty:

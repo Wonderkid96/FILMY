@@ -554,6 +554,112 @@ def show_search_page():
             st.error(f"Search error: {e}")
 
 
+def show_quick_discovery_page():
+    """One-by-one movie discovery flow"""
+    st.markdown("## 🚀 Quick Discovery")
+    st.markdown("*Discover movies one at a time - perfect for finding your next watch!*")
+    
+    # Initialize discovery state
+    if "discovery_index" not in st.session_state:
+        st.session_state.discovery_index = 0
+    
+    try:
+        # Get popular movies
+        movies = st.session_state.tmdb.get_popular_movies()
+        movie_list = movies.get("results", [])
+        
+        if not movie_list:
+            st.error("No movies available for discovery.")
+            return
+        
+        # Filter out already rated movies
+        unrated_movies = []
+        for movie in movie_list:
+            if not st.session_state.ratings_manager.is_already_rated(movie["id"], "movie"):
+                unrated_movies.append(movie)
+        
+        if not unrated_movies:
+            st.success("🎉 You've rated all popular movies! Check out TV shows or search for more content.")
+            return
+        
+        # Get current movie
+        current_movie = unrated_movies[st.session_state.discovery_index % len(unrated_movies)]
+        
+        # Display movie
+        col1, col2 = st.columns([1, 2])
+        
+        with col1:
+            if current_movie.get("poster_path"):
+                st.image(f"{TMDB_IMAGE_BASE_URL}{current_movie['poster_path']}", width=200)
+        
+        with col2:
+            st.markdown(f"### {current_movie['title']}")
+            if current_movie.get("release_date"):
+                st.markdown(f"**Released:** {current_movie['release_date'][:4]}")
+            if current_movie.get("vote_average"):
+                st.markdown(f"**TMDB Rating:** ⭐ {current_movie['vote_average']:.1f}/10")
+            st.markdown(f"**Overview:** {current_movie.get('overview', 'No description available.')}")
+        
+        # Action buttons
+        st.markdown("---")
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        with col1:
+            if st.button("😍 Perfect", key="perfect", use_container_width=True):
+                rate_and_next(current_movie, 4)
+        
+        with col2:
+            if st.button("👍 Good", key="good", use_container_width=True):
+                rate_and_next(current_movie, 3)
+        
+        with col3:
+            if st.button("😐 OK", key="ok", use_container_width=True):
+                rate_and_next(current_movie, 2)
+        
+        with col4:
+            if st.button("👎 Hate", key="hate", use_container_width=True):
+                rate_and_next(current_movie, 1)
+        
+        with col5:
+            if st.button("⏭️ Skip", key="skip", use_container_width=True):
+                next_movie()
+        
+        # Progress indicator
+        st.markdown("---")
+        st.progress((st.session_state.discovery_index + 1) / len(unrated_movies))
+        st.markdown(f"Movie {st.session_state.discovery_index + 1} of {len(unrated_movies)} unrated movies")
+        
+    except Exception as e:
+        st.error(f"Error in Quick Discovery: {e}")
+
+
+def rate_and_next(movie, rating):
+    """Rate current movie and move to next"""
+    movie_data = {
+        "id": movie["id"],
+        "title": movie["title"],
+        "type": "movie",
+        "poster_path": movie.get("poster_path"),
+        "overview": movie.get("overview", ""),
+        "vote_average": movie.get("vote_average", 0),
+        "release_date": movie.get("release_date", ""),
+        "genres": [],
+    }
+    
+    st.session_state.ratings_manager.add_rating(
+        movie["id"], movie["title"], "movie", rating, movie_data
+    )
+    
+    st.success(f"Rated '{movie['title']}' as {RATING_LABELS[rating]}!")
+    next_movie()
+
+
+def next_movie():
+    """Move to next movie in discovery"""
+    st.session_state.discovery_index += 1
+    st.rerun()
+
+
 def show_recommendations_page():
     """Show personalized recommendations"""
     st.markdown("## 🎯 Your Personalized Recommendations")
@@ -681,8 +787,8 @@ def main():
 
         selected = option_menu(
             menu_title=None,
-            options=["🎯 Discover", "🔍 Search", "⭐ Recommendations", "📊 My Ratings"],
-            icons=["stars", "search", "heart", "bar-chart"],
+            options=["🎯 Discover", "🚀 Quick Discovery", "🔍 Search", "⭐ Recommendations", "📊 My Ratings"],
+            icons=["stars", "zap", "search", "heart", "bar-chart"],
             menu_icon="cast",
             default_index=0,
             styles={
@@ -715,6 +821,8 @@ def main():
     # Main content
     if selected == "🎯 Discover":
         show_discover_page()
+    elif selected == "🚀 Quick Discovery":
+        show_quick_discovery_page()
     elif selected == "🔍 Search":
         show_search_page()
     elif selected == "⭐ Recommendations":

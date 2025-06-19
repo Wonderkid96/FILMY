@@ -23,9 +23,13 @@ def main():
     """Main application launcher"""
 
     # Import and run the main app directly
-    from apps.filmy_app import main as filmy_main
-
-    filmy_main()
+    try:
+        from apps.filmy_app import main as filmy_main
+        filmy_main()
+    except ImportError as e:
+        import streamlit as st
+        st.error(f"Import error: {e}")
+        st.error("Please check that all files are in the correct location.")
 
 
 if __name__ == "__main__":
