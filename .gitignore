@@ -62,4 +62,4 @@ Thumbs.db
 
 # Streamlit - Only hide secrets, not config
 .streamlit/secrets.toml
-.streamlit/secrets.json 
+.streamlit/secrets.json filmy_ratings.csv

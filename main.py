@@ -12,7 +12,12 @@ import os
 import streamlit as st
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+if __name__ == "__main__":
+    # Only add path when running as main script
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+else:
+    # When imported, use current directory
+    sys.path.insert(0, os.path.join(os.getcwd(), 'src'))
 
 
 def main():
