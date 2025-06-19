@@ -29,20 +29,32 @@ class GoogleSheetsManager:
     def connect(self) -> bool:
         """Connect to Google Sheets API"""
         try:
-            if not os.path.exists(self.credentials_file):
-                st.warning(f"Google credentials file not found: {self.credentials_file}")
-                return False
-            
             # Define the scope
             scope = [
                 'https://spreadsheets.google.com/feeds',
                 'https://www.googleapis.com/auth/drive'
             ]
             
-            # Load credentials
-            credentials = Credentials.from_service_account_file(
-                self.credentials_file, scopes=scope
-            )
+            # Try to load credentials from file first
+            if os.path.exists(self.credentials_file):
+                credentials = Credentials.from_service_account_file(
+                    self.credentials_file, scopes=scope
+                )
+            else:
+                # Try to load from Streamlit secrets or environment
+                try:
+                    import streamlit as st
+                    if hasattr(st, 'secrets') and 'google_credentials' in st.secrets:
+                        credentials_dict = dict(st.secrets['google_credentials'])
+                        credentials = Credentials.from_service_account_info(
+                            credentials_dict, scopes=scope
+                        )
+                    else:
+                        st.warning("Google credentials not found in file or secrets")
+                        return False
+                except Exception as e:
+                    st.warning(f"Google credentials not available: {e}")
+                    return False
             
             # Connect to Google Sheets
             self.gc = gspread.authorize(credentials)
