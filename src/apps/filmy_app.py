@@ -4,6 +4,7 @@ from streamlit_option_menu import option_menu
 from typing import Dict
 import time
 import random
+from datetime import datetime
 
 # Import our core modules
 from core.config import (
@@ -779,6 +780,231 @@ def show_my_ratings_page():
         st.error(f"Error loading ratings: {e}")
 
 
+def show_edit_ratings_page():
+    """Edit and manage all your ratings"""
+    st.markdown("## ✏️ Edit Your Ratings")
+    st.markdown("*View, edit, or delete your movie and TV show ratings*")
+    
+    try:
+        ratings_df = st.session_state.ratings_manager.get_all_ratings()
+        
+        if ratings_df.empty:
+            st.info("You haven't rated any content yet! Visit the Discover page to start rating.")
+            return
+        
+        # Filter controls
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            content_filter = st.selectbox(
+                "Filter by type:",
+                ["All", "Movies", "TV Shows"],
+                index=0
+            )
+        
+        with col2:
+            rating_filter = st.selectbox(
+                "Filter by rating:",
+                ["All Ratings", "Perfect (4)", "Good (3)", "OK (2)", "Hate (1)", "Not Interested"],
+                index=0
+            )
+        
+        with col3:
+            sort_by = st.selectbox(
+                "Sort by:",
+                ["Date Rated (Newest)", "Date Rated (Oldest)", "Title A-Z", "Title Z-A", "Rating (High-Low)", "Rating (Low-High)"],
+                index=0
+            )
+        
+        # Apply filters
+        filtered_df = ratings_df.copy()
+        
+        if content_filter == "Movies":
+            filtered_df = filtered_df[filtered_df["type"] == "movie"]
+        elif content_filter == "TV Shows":
+            filtered_df = filtered_df[filtered_df["type"] == "tv"]
+        
+        if rating_filter != "All Ratings":
+            if rating_filter == "Perfect (4)":
+                filtered_df = filtered_df[filtered_df["my_rating"] == 4]
+            elif rating_filter == "Good (3)":
+                filtered_df = filtered_df[filtered_df["my_rating"] == 3]
+            elif rating_filter == "OK (2)":
+                filtered_df = filtered_df[filtered_df["my_rating"] == 2]
+            elif rating_filter == "Hate (1)":
+                filtered_df = filtered_df[filtered_df["my_rating"] == 1]
+            elif rating_filter == "Not Interested":
+                filtered_df = filtered_df[filtered_df["my_rating"] == -1]
+        
+        # Apply sorting
+        if sort_by == "Date Rated (Newest)":
+            filtered_df = filtered_df.sort_values("date_rated", ascending=False)
+        elif sort_by == "Date Rated (Oldest)":
+            filtered_df = filtered_df.sort_values("date_rated", ascending=True)
+        elif sort_by == "Title A-Z":
+            filtered_df = filtered_df.sort_values("title", ascending=True)
+        elif sort_by == "Title Z-A":
+            filtered_df = filtered_df.sort_values("title", ascending=False)
+        elif sort_by == "Rating (High-Low)":
+            filtered_df = filtered_df.sort_values("my_rating", ascending=False)
+        elif sort_by == "Rating (Low-High)":
+            filtered_df = filtered_df.sort_values("my_rating", ascending=True)
+        
+        # Display results
+        if filtered_df.empty:
+            st.info("No ratings match your current filters.")
+            return
+        
+        st.markdown(f"### 📝 Your Ratings ({len(filtered_df)} items)")
+        
+        # Pagination
+        items_per_page = 10
+        total_pages = (len(filtered_df) - 1) // items_per_page + 1
+        
+        if total_pages > 1:
+            page = st.selectbox(f"Page (1-{total_pages}):", range(1, total_pages + 1), index=0)
+            start_idx = (page - 1) * items_per_page
+            end_idx = start_idx + items_per_page
+            page_df = filtered_df.iloc[start_idx:end_idx]
+        else:
+            page_df = filtered_df
+        
+        # Display each rating with edit options
+        for idx, (_, rating) in enumerate(page_df.iterrows()):
+            with st.container():
+                st.markdown('<div class="movie-card">', unsafe_allow_html=True)
+                
+                col1, col2, col3 = st.columns([2, 3, 2])
+                
+                with col1:
+                    # Basic info
+                    content_type = "🎬" if rating["type"] == "movie" else "📺"
+                    st.markdown(f"### {content_type} {rating['title']}")
+                    
+                    if rating.get("release_date"):
+                        year = rating["release_date"][:4] if rating["release_date"] else "N/A"
+                        st.markdown(f"**Year:** {year}")
+                    
+                    if rating.get("tmdb_rating"):
+                        st.markdown(f"**TMDB:** ⭐ {rating['tmdb_rating']:.1f}/10")
+                    
+                    # Current rating
+                    current_rating = rating["my_rating"]
+                    if current_rating > 0:
+                        rating_label = RATING_LABELS.get(current_rating, "Unknown")
+                        st.markdown(f"**Your Rating:** {rating_label} ({current_rating}/4)")
+                    elif current_rating == -1:
+                        st.markdown("**Your Rating:** Not Interested")
+                    else:
+                        st.markdown("**Your Rating:** Unknown")
+                    
+                    date_rated = rating.get("date_rated", "")
+                    if date_rated:
+                        st.markdown(f"**Rated on:** {date_rated[:10]}")
+                
+                with col2:
+                    # Overview
+                    overview = rating.get("overview", "No overview available")
+                    if len(overview) > 200:
+                        overview = overview[:200] + "..."
+                    st.markdown(f"**Overview:** {overview}")
+                
+                with col3:
+                    # Edit controls
+                    st.markdown("**Edit Rating:**")
+                    
+                    # New rating selector
+                    rating_options = {
+                        "Keep Current": current_rating,
+                        "😍 Perfect (4)": 4,
+                        "👍 Good (3)": 3,
+                        "😐 OK (2)": 2,
+                        "👎 Hate (1)": 1,
+                        "🚫 Not Interested": -1
+                    }
+                    
+                    new_rating_label = st.selectbox(
+                        "New rating:",
+                        list(rating_options.keys()),
+                        index=0,
+                        key=f"rating_select_{rating['tmdb_id']}_{rating['type']}"
+                    )
+                    
+                    new_rating = rating_options[new_rating_label]
+                    
+                    # Action buttons
+                    col_update, col_delete = st.columns(2)
+                    
+                    with col_update:
+                        if st.button("💾 Update", key=f"update_{rating['tmdb_id']}_{rating['type']}", use_container_width=True):
+                            if new_rating != current_rating:
+                                try:
+                                    success = st.session_state.ratings_manager.update_rating(
+                                        rating["tmdb_id"], rating["type"], new_rating
+                                    )
+                                    if success:
+                                        st.success("✅ Rating updated!")
+                                        time.sleep(1)
+                                        st.rerun()
+                                    else:
+                                        st.error("❌ Failed to update rating")
+                                except Exception as e:
+                                    st.error(f"❌ Error: {e}")
+                            else:
+                                st.info("No changes to save")
+                    
+                    with col_delete:
+                        if st.button("🗑️ Delete", key=f"delete_{rating['tmdb_id']}_{rating['type']}", use_container_width=True):
+                            try:
+                                success = st.session_state.ratings_manager.delete_rating(
+                                    rating["tmdb_id"], rating["type"]
+                                )
+                                if success:
+                                    st.success("✅ Rating deleted!")
+                                    time.sleep(1)
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Failed to delete rating")
+                            except Exception as e:
+                                st.error(f"❌ Error: {e}")
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("---")
+        
+        # Bulk actions
+        st.markdown("### 🔧 Bulk Actions")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("📤 Export All Ratings", use_container_width=True):
+                csv_data = ratings_df.to_csv(index=False)
+                st.download_button(
+                    label="💾 Download CSV",
+                    data=csv_data,
+                    file_name=f"filmy_ratings_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv"
+                )
+        
+        with col2:
+            if st.button("🔄 Sync to Google Sheets", use_container_width=True):
+                if hasattr(st.session_state.ratings_manager, 'sync_to_google_sheets'):
+                    try:
+                        st.session_state.ratings_manager.sync_to_google_sheets()
+                        st.success("✅ Synced to Google Sheets!")
+                    except Exception as e:
+                        st.error(f"❌ Sync failed: {e}")
+                else:
+                    st.info("Google Sheets sync not available")
+        
+        with col3:
+            # Danger zone
+            if st.button("⚠️ Clear All Ratings", use_container_width=True, help="This will delete ALL your ratings!"):
+                st.warning("This feature requires confirmation. Use the individual delete buttons for now.")
+    
+    except Exception as e:
+        st.error(f"Error loading edit page: {e}")
+
+
 def main():
     """Main application"""
     
@@ -803,8 +1029,8 @@ def main():
 
         selected = option_menu(
             menu_title=None,
-            options=["🎯 Discover", "🚀 Quick Discovery", "🔍 Search", "⭐ Recommendations", "📊 My Ratings"],
-            icons=["stars", "zap", "search", "heart", "bar-chart"],
+            options=["🎯 Discover", "🚀 Quick Discovery", "🔍 Search", "⭐ Recommendations", "📊 My Ratings", "✏️ Edit Ratings"],
+            icons=["stars", "zap", "search", "heart", "bar-chart", "pencil"],
             menu_icon="cast",
             default_index=0,
             styles={
@@ -845,6 +1071,8 @@ def main():
         show_recommendations_page()
     elif selected == "📊 My Ratings":
         show_my_ratings_page()
+    elif selected == "✏️ Edit Ratings":
+        show_edit_ratings_page()
 
     # Footer
     st.markdown("---")
