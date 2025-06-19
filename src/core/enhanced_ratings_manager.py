@@ -185,6 +185,19 @@ class EnhancedRatingsManager:
         # For now, return empty list to prevent errors
         return []
     
+    def get_user_rating(self, tmdb_id: int, content_type: str) -> int:
+        """Get user's rating for a specific item"""
+        if self.df.empty:
+            return None
+        
+        mask = (self.df['tmdb_id'] == tmdb_id) & (self.df['type'] == content_type)
+        matches = self.df[mask]
+        
+        if not matches.empty:
+            return matches.iloc[0]['my_rating']
+        
+        return None
+    
     def get_ratings_by_score(self, min_score: int, content_type: str = None) -> pd.DataFrame:
         """Get all items with rating >= min_score"""
         if self.df.empty:
