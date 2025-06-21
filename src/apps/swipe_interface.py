@@ -607,8 +607,38 @@ class SwipeInterface:
             {self.get_swipe_javascript()}
             """
             
-            # Render the component
-            components.html(full_html, height=650, key=key)
+            # Render the component (simplified for stability)
+            try:
+                components.html(full_html, height=650)
+            except Exception as e:
+                st.error(f"Swipe interface error: {e}")
+                st.markdown("**Fallback: Basic card view**")
+                st.markdown(f"**{current_rec['title']}**")
+                st.markdown(f"Rating: {current_rec.get('vote_average', 'N/A')}/10")
+                st.markdown(f"Overview: {current_rec.get('overview', 'No description')[:200]}...")
+                
+                # Simple rating buttons
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    if st.button("👎 Hate", key=f"hate_{key}"):
+                        self.ratings_manager.add_rating(current_rec['id'], current_rec['title'], current_rec['type'], 1, current_rec)
+                        recommendations.pop(0)
+                        st.rerun()
+                with col2:
+                    if st.button("🤷 OK", key=f"ok_{key}"):
+                        self.ratings_manager.add_rating(current_rec['id'], current_rec['title'], current_rec['type'], 2, current_rec)
+                        recommendations.pop(0)
+                        st.rerun()
+                with col3:
+                    if st.button("👍 Good", key=f"good_{key}"):
+                        self.ratings_manager.add_rating(current_rec['id'], current_rec['title'], current_rec['type'], 3, current_rec)
+                        recommendations.pop(0)
+                        st.rerun()
+                with col4:
+                    if st.button("🌟 Perfect", key=f"perfect_{key}"):
+                        self.ratings_manager.add_rating(current_rec['id'], current_rec['title'], current_rec['type'], 4, current_rec)
+                        recommendations.pop(0)
+                        st.rerun()
             
             # Handle messages from JavaScript
             if 'swipe_action' in st.session_state:

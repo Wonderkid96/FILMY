@@ -1407,7 +1407,7 @@ def show_edit_ratings_page():
 
 
 def main():
-    """Main application"""
+    """Main application - Cache Bust v2025.06.21.16.51"""
 
     # Initialize session state at the start of main
     if "tmdb" not in st.session_state:
@@ -1426,7 +1426,7 @@ def main():
 
     # Sidebar navigation
     with st.sidebar:
-        st.markdown("### 🎬 FILMY Navigation")
+        st.markdown("### FILMY Navigation")
 
         selected = option_menu(
             menu_title=None,
@@ -1445,9 +1445,13 @@ def main():
                     "font-size": "16px",
                     "text-align": "left",
                     "margin": "0px",
+                    "color": "#262730",
                     "--hover-color": "#eee",
                 },
-                "nav-link-selected": {"background-color": "#FF6B6B"},
+                "nav-link-selected": {
+                    "background-color": "#FF6B6B", 
+                    "color": "white"
+                },
             },
         )
 
@@ -1456,12 +1460,18 @@ def main():
         try:
             ratings_df = st.session_state.ratings_manager.get_all_ratings()
             if not ratings_df.empty:
+                total_items = len(ratings_df)
                 positive_ratings = ratings_df[ratings_df["my_rating"] > 0]
-                st.markdown("### 📈 Quick Stats")
-                st.metric("Items Rated", len(positive_ratings))
+                watchlist = len(ratings_df[ratings_df["my_rating"] == 0])
+                
+                st.markdown("### Quick Stats")
+                st.metric("Total Items", total_items)
+                st.metric("Watched", len(positive_ratings))
+                st.metric("Watchlist", watchlist)
+                
                 if len(positive_ratings) > 0:
                     avg_rating = positive_ratings["my_rating"].mean()
-                    st.metric("Average Rating", f"{avg_rating:.1f}/4")
+                    st.metric("Avg Rating", f"{avg_rating:.1f}/4")
         except Exception:
             pass
 
