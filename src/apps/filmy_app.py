@@ -846,11 +846,8 @@ def show_your_swipes_page():
             perfect_count = len(ratings_df[ratings_df["my_rating"] == 4])
             st.metric("Perfect Ratings", perfect_count)
         with col4:
-            if watched > 0:
-                avg = ratings_df[ratings_df["my_rating"] > 0]["my_rating"].mean()
-                st.metric("Average", f"{avg:.1f}/4")
-            else:
-                st.metric("Average", "N/A")
+            perfect_count = len(ratings_df[ratings_df["my_rating"] == 4])
+            st.metric("Perfect Picks", perfect_count)
         
         st.markdown("---")
         
@@ -911,7 +908,9 @@ def show_your_swipes_page():
                     rating_labels = {-1: "Not Interested", 0: "Watchlist", 1: "Hate", 2: "OK", 3: "Good", 4: "Perfect"}
                     current_label = rating_labels.get(rating["my_rating"], "Unknown")
                     st.write(f"**{current_label}**")
-                    st.caption(rating["date_rated"][:10])
+                    # Handle both string and timestamp objects
+                    date_str = str(rating["date_rated"])[:10] if rating.get("date_rated") else "Unknown"
+                    st.caption(date_str)
                 
                 with col3:
                     if st.button("Edit", key=f"edit_{rating['tmdb_id']}_{rating['type']}", use_container_width=True):
@@ -957,6 +956,48 @@ def show_your_swipes_page():
         
     except Exception as e:
         st.error(f"Error loading your swipes: {e}")
+
+
+def show_watchlist_page():
+    """Show user's watchlist with streaming platform info"""
+    st.markdown("# Watchlist")
+    st.markdown("*Your want-to-watch list with streaming info*")
+    
+    try:
+        ratings_df = st.session_state.ratings_manager.get_all_ratings()
+        watchlist = ratings_df[ratings_df["my_rating"] == 0]
+        
+        if watchlist.empty:
+            st.info("No items in your watchlist yet! Add items from Home or Recommendations.")
+            return
+        
+        st.markdown(f"### {len(watchlist)} items in your watchlist")
+        
+        for _, item in watchlist.iterrows():
+            with st.container():
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    content_type = "Movie" if item["type"] == "movie" else "TV Show"
+                    st.write(f"**{item['title']}** ({content_type})")
+                    if item.get('overview'):
+                        st.caption(item['overview'][:150] + "..." if len(item['overview']) > 150 else item['overview'])
+                
+                with col2:
+                    if st.button("Remove", key=f"remove_watchlist_{item['tmdb_id']}_{item['type']}"):
+                        success = st.session_state.ratings_manager.delete_rating(
+                            item["tmdb_id"], item["type"]
+                        )
+                        if success:
+                            st.success("Removed from watchlist!")
+                            st.rerun()
+                
+                # TODO: Add streaming platform info here using TMDB watch providers API
+                st.caption("🔜 Streaming platform info coming soon!")
+                st.markdown("---")
+    
+    except Exception as e:
+        st.error(f"Error loading watchlist: {e}")
 
 
 def show_recommendations_page():
