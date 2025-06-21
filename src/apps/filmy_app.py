@@ -13,10 +13,12 @@ from core.config import (
 )
 from core.tmdb_api import TMDBApi
 from core.enhanced_ratings_manager import EnhancedRatingsManager
+from core.dynamic_recommendations import DynamicRecommendationManager
+# Swipe interface imported dynamically in functions
 
 # Page configuration
 st.set_page_config(
-    page_title="🎬 FILMY - Movie Discovery for Couples",
+    page_title="FILMY - Movie Discovery",
     page_icon="🎬",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -354,6 +356,11 @@ def display_content_card(item: Dict, show_actions: bool = True):
         with col_type:
             content_type = "🎬 Movie" if item["type"] == "movie" else "📺 TV Show"
             st.markdown(f"{content_type}")
+
+        # Show recommendation reason if available
+        if item.get("rec_reason"):
+            match_score = item.get("final_score", 0.5) * 100
+            st.info(f"🎯 **{item['rec_reason']}** (Match: {match_score:.0f}%)")
 
         # Language info (very important!)
         if item.get("language_name"):
@@ -721,34 +728,287 @@ def next_movie():
     st.rerun()
 
 
+def show_home_page():
+    """Full-screen swipe interface"""
+    # Remove default streamlit padding for full-screen experience
+    st.markdown("""
+    <style>
+    .main .block-container {
+        padding-top: 1rem;
+        padding-bottom: 0rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Initialize dynamic recommendation manager
+    if 'dynamic_rec_manager' not in st.session_state:
+        st.session_state.dynamic_rec_manager = DynamicRecommendationManager(
+            st.session_state.ratings_manager
+        )
+    
+    # Create enhanced swipe interface
+    create_enhanced_swipe_page()
+
+
+def create_enhanced_swipe_page():
+    """Enhanced swipe interface with better visuals and new release tracking"""
+    st.markdown("# FILMY")
+    st.markdown("*Discover your next favorite film*")
+    
+    # Get fresh recommendations including new releases
+    if 'swipe_recommendations' not in st.session_state:
+        st.session_state.swipe_recommendations = []
+    
+    # Load more recommendations if needed
+    if len(st.session_state.swipe_recommendations) < 5:
+        new_recs = st.session_state.dynamic_rec_manager.get_endless_recommendations(25)
+        # Add new release tracking
+        new_recs = add_new_release_tracking(new_recs)
+        st.session_state.swipe_recommendations.extend(new_recs)
+    
+    # Show current recommendation count and user stats
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Ready to Swipe", len(st.session_state.swipe_recommendations))
+    with col2:
+        total_ratings = len(st.session_state.ratings_manager.get_all_ratings())
+        st.metric("Your Ratings", total_ratings)
+    with col3:
+        if total_ratings > 0:
+            avg_rating = st.session_state.ratings_manager.get_all_ratings()["my_rating"].mean()
+            st.metric("Avg Rating", f"{avg_rating:.1f}/4")
+        else:
+            st.metric("Getting Started", "Rate to unlock")
+    
+    st.markdown("---")
+    
+    # Enhanced swipe interface from swipe_interface.py
+    from apps.swipe_interface import SwipeInterface
+    swipe_interface = SwipeInterface(st.session_state.ratings_manager)
+    swipe_interface.render_swipe_interface(
+        st.session_state.swipe_recommendations,
+        key="home_swipe"
+    )
+
+
+def add_new_release_tracking(recommendations):
+    """Add tracking for new releases that match user preferences"""
+    enhanced_recs = []
+    
+    for rec in recommendations:
+        # Check if it's a recent release (last 3 months)
+        try:
+            release_date = rec.get('release_date', '')
+            if release_date:
+                from datetime import datetime, timedelta
+                release_dt = datetime.strptime(release_date, '%Y-%m-%d')
+                three_months_ago = datetime.now() - timedelta(days=90)
+                
+                if release_dt > three_months_ago:
+                    rec['rec_reason'] = f"NEW RELEASE: {rec.get('rec_reason', 'Fresh content')}"
+                    rec['rec_score'] = rec.get('rec_score', 0.5) + 0.1  # Boost new releases
+                    
+        except:
+            pass  # Skip date parsing errors
+            
+        enhanced_recs.append(rec)
+    
+    return enhanced_recs
+
+
+def show_your_swipes_page():
+    """Clean interface for managing user ratings"""
+    st.markdown("# Your Swipes")
+    st.markdown("*Review and edit your ratings*")
+    
+    try:
+        ratings_df = st.session_state.ratings_manager.get_all_ratings()
+        
+        if ratings_df.empty:
+            st.info("No ratings yet! Go to Home to start swiping.")
+            if st.button("Start Swiping", type="primary", use_container_width=True):
+                st.switch_page("Home")
+            return
+        
+        # Quick stats
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            watched = len(ratings_df[ratings_df["my_rating"] > 0])
+            st.metric("Watched", watched)
+        with col2:
+            watchlist = len(ratings_df[ratings_df["my_rating"] == 0])
+            st.metric("Watchlist", watchlist)
+        with col3:
+            perfect_count = len(ratings_df[ratings_df["my_rating"] == 4])
+            st.metric("Perfect Ratings", perfect_count)
+        with col4:
+            if watched > 0:
+                avg = ratings_df[ratings_df["my_rating"] > 0]["my_rating"].mean()
+                st.metric("Average", f"{avg:.1f}/4")
+            else:
+                st.metric("Average", "N/A")
+        
+        st.markdown("---")
+        
+        # Filter and sort options
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            filter_type = st.selectbox("Filter by type", ["All", "Movies", "TV Shows"])
+        with col2:
+            filter_rating = st.selectbox("Filter by rating", [
+                "All", "Perfect (4)", "Good (3)", "OK (2)", "Hate (1)", "Watchlist", "Not Interested"
+            ])
+        with col3:
+            sort_by = st.selectbox("Sort by", [
+                "Date (Newest)", "Date (Oldest)", "Rating (High)", "Rating (Low)", "Title A-Z"
+            ])
+        
+        # Apply filters
+        filtered_df = ratings_df.copy()
+        
+        if filter_type == "Movies":
+            filtered_df = filtered_df[filtered_df["type"] == "movie"]
+        elif filter_type == "TV Shows":
+            filtered_df = filtered_df[filtered_df["type"] == "tv"]
+            
+        if filter_rating != "All":
+            rating_map = {
+                "Perfect (4)": 4, "Good (3)": 3, "OK (2)": 2, "Hate (1)": 1,
+                "Watchlist": 0, "Not Interested": -1
+            }
+            filtered_df = filtered_df[filtered_df["my_rating"] == rating_map[filter_rating]]
+        
+        # Apply sorting
+        if sort_by == "Date (Newest)":
+            filtered_df = filtered_df.sort_values("date_rated", ascending=False)
+        elif sort_by == "Date (Oldest)":
+            filtered_df = filtered_df.sort_values("date_rated", ascending=True)
+        elif sort_by == "Rating (High)":
+            filtered_df = filtered_df.sort_values("my_rating", ascending=False)
+        elif sort_by == "Rating (Low)":
+            filtered_df = filtered_df.sort_values("my_rating", ascending=True)
+        elif sort_by == "Title A-Z":
+            filtered_df = filtered_df.sort_values("title", ascending=True)
+        
+        # Display results
+        st.markdown(f"### {len(filtered_df)} items")
+        
+        for _, rating in filtered_df.iterrows():
+            with st.container():
+                col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
+                
+                with col1:
+                    content_type = "Movie" if rating["type"] == "movie" else "TV Show"
+                    st.write(f"**{rating['title']}** ({content_type})")
+                    if rating.get('overview'):
+                        st.caption(rating['overview'][:100] + "..." if len(rating['overview']) > 100 else rating['overview'])
+                
+                with col2:
+                    rating_labels = {-1: "Not Interested", 0: "Watchlist", 1: "Hate", 2: "OK", 3: "Good", 4: "Perfect"}
+                    current_label = rating_labels.get(rating["my_rating"], "Unknown")
+                    st.write(f"**{current_label}**")
+                    st.caption(rating["date_rated"][:10])
+                
+                with col3:
+                    if st.button("Edit", key=f"edit_{rating['tmdb_id']}_{rating['type']}", use_container_width=True):
+                        st.session_state[f"editing_{rating['tmdb_id']}_{rating['type']}"] = True
+                
+                with col4:
+                    if st.button("Delete", key=f"delete_{rating['tmdb_id']}_{rating['type']}", use_container_width=True):
+                        success = st.session_state.ratings_manager.delete_rating(
+                            rating["tmdb_id"], rating["type"]
+                        )
+                        if success:
+                            st.success("Deleted!")
+                            st.rerun()
+                
+                # Inline editing
+                if st.session_state.get(f"editing_{rating['tmdb_id']}_{rating['type']}", False):
+                    with st.expander("Edit Rating", expanded=True):
+                        new_rating = st.selectbox(
+                            "New rating:",
+                            options=[-1, 0, 1, 2, 3, 4],
+                            format_func=lambda x: rating_labels[x],
+                            index=[k for k, v in rating_labels.items()].index(rating["my_rating"]),
+                            key=f"new_rating_{rating['tmdb_id']}_{rating['type']}"
+                        )
+                        
+                        col_save, col_cancel = st.columns(2)
+                        with col_save:
+                            if st.button("Save", key=f"save_{rating['tmdb_id']}_{rating['type']}"):
+                                success = st.session_state.ratings_manager.update_rating(
+                                    rating["tmdb_id"], rating["type"], new_rating
+                                )
+                                if success:
+                                    st.success("Updated!")
+                                    del st.session_state[f"editing_{rating['tmdb_id']}_{rating['type']}"]
+                                    st.rerun()
+                        
+                        with col_cancel:
+                            if st.button("Cancel", key=f"cancel_{rating['tmdb_id']}_{rating['type']}"):
+                                del st.session_state[f"editing_{rating['tmdb_id']}_{rating['type']}"]
+                                st.rerun()
+                
+                st.markdown("---")
+        
+    except Exception as e:
+        st.error(f"Error loading your swipes: {e}")
+
+
 def show_recommendations_page():
-    """Show personalized recommendations"""
-    st.markdown("## 🎯 Your Personalized Recommendations")
+    """Show endless personalized recommendations"""
+    st.markdown("## 🎯 Your Endless Recommendations")
 
     try:
+        # Initialize dynamic recommendation manager
+        if 'dynamic_rec_manager' not in st.session_state:
+            st.session_state.dynamic_rec_manager = DynamicRecommendationManager(
+                st.session_state.ratings_manager
+            )
+
         # Get user's ratings to base recommendations on
         user_ratings = st.session_state.ratings_manager.get_all_ratings()
 
-        if user_ratings.empty or len(user_ratings) < 3:
-            st.info(
-                "🎬 Rate at least 3 movies or TV shows to get personalized recommendations!"
-            )
-            st.markdown("Visit the **Discover** page to start rating content.")
-            return
+        # Show recommendations even for new users
+        if user_ratings.empty:
+            st.info("🎬 New user? You'll get popular and trending content to start with!")
+        else:
+            st.info(f"🎯 Based on your {len(user_ratings)} ratings - recommendations get smarter as you rate more!")
 
-        # Get recommendations based on user preferences
-        recommendations = st.session_state.ratings_manager.get_recommendations(limit=15)
+        # Get endless recommendations
+        recommendations = st.session_state.dynamic_rec_manager.get_endless_recommendations(20)
 
         if recommendations:
-            st.markdown(
-                f"### 🌟 Based on your ratings ({len(recommendations)} recommendations)"
-            )
+            st.markdown(f"### 🌟 Fresh Recommendations ({len(recommendations)} loaded)")
+            
+            # Show pool stats
+            pool_stats = st.session_state.dynamic_rec_manager.get_pool_stats()
+            with st.expander("📊 Recommendation Sources"):
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("🧠 Intelligent", pool_stats.get('intelligent', 0))
+                    st.metric("🔥 Trending", pool_stats.get('trending', 0))
+                with col2:
+                    st.metric("⭐ Popular", pool_stats.get('popular', 0))
+                    st.metric("🎭 Discovery", pool_stats.get('discovery', 0))
+                with col3:
+                    st.metric("🎯 Genre Deep Dive", pool_stats.get('genre_deep_dive', 0))
 
             for item in recommendations:
                 display_content_card(item)
                 st.markdown("---")
+                
+            # Load more button
+            if st.button("🔄 Load More Recommendations", use_container_width=True):
+                st.rerun()
         else:
-            st.info("No new recommendations available. Try rating more content!")
+            st.warning("No recommendations available. This shouldn't happen with the dynamic system!")
+            if st.button("🔄 Reset Recommendation System"):
+                if 'dynamic_rec_manager' in st.session_state:
+                    st.session_state.dynamic_rec_manager.clear_used_items()
+                st.rerun()
 
     except Exception as e:
         st.error(f"Error loading recommendations: {e}")
@@ -1171,14 +1431,11 @@ def main():
         selected = option_menu(
             menu_title=None,
             options=[
-                "🎯 Discover",
-                "🚀 Quick Discovery",
-                "🔍 Search",
-                "⭐ Recommendations",
-                "📊 My Ratings",
-                "✏️ Edit Ratings",
+                "Home",
+                "Recommendations", 
+                "Your Swipes",
             ],
-            icons=["stars", "zap", "search", "heart", "bar-chart", "pencil"],
+            icons=["house", "target", "list-check"],
             menu_icon="cast",
             default_index=0,
             styles={
@@ -1209,18 +1466,12 @@ def main():
             pass
 
     # Main content
-    if selected == "🎯 Discover":
-        show_discover_page()
-    elif selected == "🚀 Quick Discovery":
-        show_quick_discovery_page()
-    elif selected == "🔍 Search":
-        show_search_page()
-    elif selected == "⭐ Recommendations":
+    if selected == "Home":
+        show_home_page()
+    elif selected == "Recommendations":
         show_recommendations_page()
-    elif selected == "📊 My Ratings":
-        show_my_ratings_page()
-    elif selected == "✏️ Edit Ratings":
-        show_edit_ratings_page()
+    elif selected == "Your Swipes":
+        show_your_swipes_page()
 
     # Footer
     st.markdown("---")

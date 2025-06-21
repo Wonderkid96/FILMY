@@ -194,6 +194,14 @@ class TMDBApi:
         """Get TV show cast and crew"""
         return self._make_request(f"/tv/{tv_id}/credits")
 
+    def get_person_movie_credits(self, person_id: int) -> Optional[Dict]:
+        """Get person's movie credits"""
+        return self._make_request(f"/person/{person_id}/movie_credits")
+
+    def get_person_tv_credits(self, person_id: int) -> Optional[Dict]:
+        """Get person's TV credits"""
+        return self._make_request(f"/person/{person_id}/tv_credits")
+
     def get_full_image_url(self, image_path: str) -> str:
         """Get full image URL"""
         if image_path:
