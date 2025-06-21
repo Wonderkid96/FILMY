@@ -268,3 +268,74 @@ class TMDBApi:
             "language_name": language_name,
             "type": "tv",
         }
+
+
+# Cached functions for better performance
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def get_popular_movies_cached(page: int = 1) -> Optional[Dict]:
+    """Get popular movies with caching"""
+    api = _get_api_instance()
+    return api._make_request("/movie/popular", {"page": page})
+
+
+@st.cache_data(ttl=3600)
+def get_popular_tv_cached(page: int = 1) -> Optional[Dict]:
+    """Get popular TV shows with caching"""
+    api = _get_api_instance()
+    return api._make_request("/tv/popular", {"page": page})
+
+
+@st.cache_data(ttl=7200)  # Cache for 2 hours
+def get_top_rated_movies_cached(page: int = 1) -> Optional[Dict]:
+    """Get top rated movies with caching"""
+    api = _get_api_instance()
+    return api._make_request("/movie/top_rated", {"page": page})
+
+
+@st.cache_data(ttl=7200)
+def get_top_rated_tv_cached(page: int = 1) -> Optional[Dict]:
+    """Get top rated TV shows with caching"""
+    api = _get_api_instance()
+    return api._make_request("/tv/top_rated", {"page": page})
+
+
+@st.cache_data(ttl=1800)  # Cache for 30 minutes
+def get_trending_cached(media_type: str = "all", time_window: str = "day") -> Optional[Dict]:
+    """Get trending content with caching"""
+    api = _get_api_instance()
+    return api._make_request(f"/trending/{media_type}/{time_window}")
+
+
+@st.cache_data(ttl=1800)
+def search_movies_cached(query: str, page: int = 1) -> Optional[Dict]:
+    """Search movies with caching"""
+    api = _get_api_instance()
+    return api._make_request("/search/movie", {"query": query, "page": page})
+
+
+@st.cache_data(ttl=1800)
+def search_tv_cached(query: str, page: int = 1) -> Optional[Dict]:
+    """Search TV shows with caching"""
+    api = _get_api_instance()
+    return api._make_request("/search/tv", {"query": query, "page": page})
+
+
+@st.cache_data(ttl=86400)  # Cache for 24 hours
+def get_movie_details_cached(movie_id: int) -> Optional[Dict]:
+    """Get movie details with caching"""
+    api = _get_api_instance()
+    return api._make_request(f"/movie/{movie_id}")
+
+
+@st.cache_data(ttl=86400)
+def get_tv_details_cached(tv_id: int) -> Optional[Dict]:
+    """Get TV details with caching"""
+    api = _get_api_instance()
+    return api._make_request(f"/tv/{tv_id}")
+
+
+def _get_api_instance():
+    """Get API instance for cached functions"""
+    if 'tmdb_api' not in st.session_state:
+        st.session_state.tmdb_api = TMDBApi()
+    return st.session_state.tmdb_api

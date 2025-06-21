@@ -62,6 +62,16 @@ class SwipeInterface:
                 </button>
             </div>
             
+            <!-- Mobile-friendly extended actions -->
+            <div class="extended-actions">
+                <button class="btn btn-watchlist" onclick="handleWatchlist('{card_id}')">
+                    📋 Watchlist
+                </button>
+                <button class="btn btn-skip" onclick="handleSkip('{card_id}')">
+                    ⏭️ Skip
+                </button>
+            </div>
+            
             <div class="rating-mode" id="rating-mode-{card_id}" style="display: none;">
                 <div class="rating-instruction">
                     <p>👈 Swipe left: Didn't like it</p>
@@ -199,15 +209,36 @@ class SwipeInterface:
             background: #f8f9fa;
         }
         
+        .extended-actions {
+            display: flex;
+            gap: 8px;
+            padding: 0 16px 16px 16px;
+            background: #f8f9fa;
+            justify-content: center;
+        }
+        
         .btn {
             flex: 1;
             padding: 12px 16px;
             border: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
+            border-radius: 25px;
             font-weight: 600;
+            font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
         }
         
         .btn-havent-seen {
@@ -216,13 +247,20 @@ class SwipeInterface:
         }
         
         .btn-have-seen {
-            background: #007bff;
+            background: #28a745;
             color: white;
         }
         
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        .btn-watchlist {
+            background: #007bff;
+            color: white;
+            flex: 0.7;
+        }
+        
+        .btn-skip {
+            background: #6c757d;
+            color: white;
+            flex: 0.7;
         }
         
         .rating-mode {
@@ -301,8 +339,11 @@ class SwipeInterface:
         }
         
         .swipe-up {
-            transform: translateY(-100%) scale(0.8);
-            opacity: 0;
+            animation: swipeUp 0.3s ease-out forwards !important;
+        }
+        
+        .swipe-down {
+            animation: swipeDown 0.3s ease-out forwards !important;
         }
         
         /* Mobile responsive */
@@ -324,6 +365,135 @@ class SwipeInterface:
                 grid-template-columns: 1fr 1fr;
             }
         }
+        
+        /* Keyboard feedback styles */
+        .keyboard-feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .keyboard-feedback.left {
+            background: rgba(220, 53, 69, 0.9);
+        }
+        
+        .keyboard-feedback.right {
+            background: rgba(40, 167, 69, 0.9);
+        }
+        
+        .keyboard-feedback.up {
+            background: rgba(0, 123, 255, 0.9);
+        }
+        
+        .keyboard-feedback.down {
+            background: rgba(108, 117, 125, 0.9);
+        }
+        
+        .keyboard-feedback.center {
+            background: rgba(102, 16, 242, 0.9);
+        }
+        
+        /* Keyboard help overlay */
+        .keyboard-help {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            z-index: 2000;
+            max-width: 250px;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+        
+        .keyboard-help-content h4 {
+            margin: 0 0 12px 0;
+            font-size: 1rem;
+            text-align: center;
+        }
+        
+        .help-grid {
+            display: grid;
+            gap: 6px;
+            font-size: 0.85rem;
+        }
+        
+        .help-grid div {
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .help-grid div:last-child {
+            border-bottom: none;
+        }
+        
+        @keyframes swipeLeft {
+            to {
+                transform: translateX(-100vw) rotate(-30deg);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes swipeRight {
+            to {
+                transform: translateX(100vw) rotate(30deg);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes swipeUp {
+            to {
+                transform: translateY(-100vh) scale(0.8);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes swipeDown {
+            to {
+                transform: translateY(100vh) scale(0.8);
+                opacity: 0;
+            }
+        }
+        
+        /* Mobile responsiveness for keyboard help */
+        @media (max-width: 768px) {
+            .keyboard-help {
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                max-width: none;
+                text-align: center;
+            }
+            
+            .help-grid {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+            }
+            
+            .help-grid div {
+                background: rgba(255, 255, 255, 0.1);
+                padding: 6px 10px;
+                border-radius: 15px;
+                border-bottom: none;
+                font-size: 0.8rem;
+            }
+        }
         </style>
         """
     
@@ -338,6 +508,7 @@ class SwipeInterface:
         let currentX = 0;
         let currentY = 0;
         let cardInitialTransform = '';
+        let keyboardActive = false;
         
         function initializeSwipe() {
             const cards = document.querySelectorAll('.swipe-card');
@@ -352,9 +523,179 @@ class SwipeInterface:
                 card.addEventListener('mouseup', handleMouseEnd);
                 card.addEventListener('mouseleave', handleMouseEnd);
             });
+            
+            // Add keyboard event listeners
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
+            
+            // Make the page focusable for keyboard events
+            if (!document.activeElement || document.activeElement === document.body) {
+                document.body.setAttribute('tabindex', '0');
+                document.body.focus();
+            }
+            
+            // Show keyboard instructions
+            showKeyboardInstructions();
+        }
+        
+        function showKeyboardInstructions() {
+            // Create keyboard help overlay that appears briefly
+            const helpDiv = document.createElement('div');
+            helpDiv.className = 'keyboard-help';
+            helpDiv.innerHTML = `
+                <div class="keyboard-help-content">
+                    <h4>⌨️ Keyboard Controls</h4>
+                    <div class="help-grid">
+                        <div>← Left: Dislike</div>
+                        <div>→ Right: Like</div>
+                        <div>↑ Up: Watchlist</div>
+                        <div>↓ Down: Skip</div>
+                        <div>Space: Haven't Seen / Have Seen</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(helpDiv);
+            
+            // Hide after 4 seconds
+            setTimeout(() => {
+                helpDiv.style.opacity = '0';
+                setTimeout(() => helpDiv.remove(), 500);
+            }, 4000);
+        }
+        
+        function handleKeyDown(e) {
+            const activeCard = document.querySelector('.swipe-card:not(.swipe-left):not(.swipe-right):not(.swipe-up):not(.swipe-down)');
+            if (!activeCard) return;
+            
+            keyboardActive = true;
+            const cardId = activeCard.id.replace('card-', '');
+            
+            // Prevent default scrolling behavior
+            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(e.code)) {
+                e.preventDefault();
+            }
+            
+            switch(e.code) {
+                case 'ArrowLeft':
+                    // Left arrow: Dislike/Hate
+                    showKeyboardFeedback(activeCard, '❌ DISLIKE', 'left');
+                    setTimeout(() => handleKeyboardSwipeLeft(activeCard), 200);
+                    break;
+                    
+                case 'ArrowRight':
+                    // Right arrow: Like/Love
+                    showKeyboardFeedback(activeCard, '💚 LIKE', 'right');
+                    setTimeout(() => handleKeyboardSwipeRight(activeCard), 200);
+                    break;
+                    
+                case 'ArrowUp':
+                    // Up arrow: Add to watchlist
+                    showKeyboardFeedback(activeCard, '📋 WATCHLIST', 'up');
+                    setTimeout(() => handleKeyboardWatchlist(activeCard), 200);
+                    break;
+                    
+                case 'ArrowDown':
+                    // Down arrow: Skip/Not interested
+                    showKeyboardFeedback(activeCard, '🗑️ SKIP', 'down');
+                    setTimeout(() => handleKeyboardTrash(activeCard), 200);
+                    break;
+                    
+                case 'Space':
+                    // Space: Toggle Haven't Seen / Have Seen
+                    const actionButtons = activeCard.querySelector('.action-buttons');
+                    const ratingMode = activeCard.querySelector('.rating-mode');
+                    
+                    if (actionButtons && actionButtons.style.display !== 'none') {
+                        // In default mode - toggle to "Have Seen"
+                        handleHaveSeen(cardId);
+                        showKeyboardFeedback(activeCard, '👀 RATING MODE', 'center');
+                    } else if (ratingMode && ratingMode.style.display !== 'none') {
+                        // In rating mode - go back to default
+                        actionButtons.style.display = 'flex';
+                        ratingMode.style.display = 'none';
+                        // Reset indicators
+                        const leftText = activeCard.querySelector(`#left-text-${cardId}`);
+                        const rightText = activeCard.querySelector(`#right-text-${cardId}`);
+                        leftText.textContent = '❌';
+                        rightText.textContent = '✅';
+                        showKeyboardFeedback(activeCard, '🤷 HAVEN\'T SEEN', 'center');
+                    }
+                    break;
+            }
+        }
+        
+        function handleKeyUp(e) {
+            keyboardActive = false;
+        }
+        
+        function showKeyboardFeedback(card, text, direction) {
+            // Create or update feedback overlay
+            let feedback = card.querySelector('.keyboard-feedback');
+            if (!feedback) {
+                feedback = document.createElement('div');
+                feedback.className = 'keyboard-feedback';
+                card.appendChild(feedback);
+            }
+            
+            feedback.innerHTML = `<div class="feedback-text">${text}</div>`;
+            feedback.className = `keyboard-feedback ${direction}`;
+            feedback.style.opacity = '1';
+            
+            // Add temporary visual effect to card
+            card.style.transform = getKeyboardTransform(direction);
+            
+            // Reset after animation
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+                card.style.transform = '';
+            }, 300);
+        }
+        
+        function getKeyboardTransform(direction) {
+            switch(direction) {
+                case 'left': return 'translateX(-20px) rotate(-5deg)';
+                case 'right': return 'translateX(20px) rotate(5deg)';
+                case 'up': return 'translateY(-20px) scale(1.02)';
+                case 'down': return 'translateY(20px) scale(0.98)';
+                case 'center': return 'scale(1.05)';
+                default: return '';
+            }
+        }
+        
+        function handleKeyboardSwipeLeft(card) {
+            card.classList.add('swipe-left');
+            handleSwipeLeft(card);
+        }
+        
+        function handleKeyboardSwipeRight(card) {
+            card.classList.add('swipe-right');
+            handleSwipeRight(card);
+        }
+        
+        function handleKeyboardWatchlist(card) {
+            const cardId = card.id.replace('card-', '');
+            const movieId = card.dataset.movieId;
+            const movieType = card.dataset.movieType;
+            
+            // Add to watchlist (new feature)
+            rateMovie(movieId, movieType, -2, 'Add to Watchlist');
+            
+            card.classList.add('swipe-up');
+            setTimeout(() => {
+                card.remove();
+                loadNextCard();
+            }, 300);
+        }
+        
+        function handleKeyboardTrash(card) {
+            const cardId = card.id.replace('card-', '');
+            
+            // Same as "Haven't Seen" button
+            handleHaventSeen(cardId);
         }
         
         function handleTouchStart(e) {
+            if (keyboardActive) return;
             currentCard = e.target.closest('.swipe-card');
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
@@ -364,6 +705,7 @@ class SwipeInterface:
         }
         
         function handleMouseDown(e) {
+            if (keyboardActive) return;
             currentCard = e.target.closest('.swipe-card');
             startX = e.clientX;
             startY = e.clientY;
@@ -374,7 +716,7 @@ class SwipeInterface:
         }
         
         function handleTouchMove(e) {
-            if (!currentCard) return;
+            if (!currentCard || keyboardActive) return;
             e.preventDefault();
             
             currentX = e.touches[0].clientX;
@@ -383,7 +725,7 @@ class SwipeInterface:
         }
         
         function handleMouseMove(e) {
-            if (!currentCard) return;
+            if (!currentCard || keyboardActive) return;
             e.preventDefault();
             
             currentX = e.clientX;
@@ -417,10 +759,12 @@ class SwipeInterface:
         }
         
         function handleTouchEnd(e) {
+            if (keyboardActive) return;
             handleSwipeEnd();
         }
         
         function handleMouseEnd(e) {
+            if (keyboardActive) return;
             handleSwipeEnd();
         }
         
@@ -521,6 +865,26 @@ class SwipeInterface:
             rightText.textContent = '👍';
         }
         
+        function handleWatchlist(cardId) {
+            const card = document.getElementById(`card-${cardId}`);
+            const movieId = card.dataset.movieId;
+            const movieType = card.dataset.movieType;
+            
+            // Add to watchlist
+            rateMovie(movieId, movieType, -2, 'Add to Watchlist');
+            
+            card.classList.add('swipe-up');
+            setTimeout(() => {
+                card.remove();
+                loadNextCard();
+            }, 300);
+        }
+        
+        function handleSkip(cardId) {
+            // Same as "Haven't Seen" - just skip without rating
+            handleHaventSeen(cardId);
+        }
+        
         function quickRate(cardId, rating) {
             const card = document.getElementById(`card-${cardId}`);
             const movieId = card.dataset.movieId;
@@ -562,6 +926,7 @@ class SwipeInterface:
         
         function getRatingLabel(rating) {
             const labels = {
+                '-2': 'Add to Watchlist',
                 '-1': 'Not Interested',
                 '0': 'Want to See',
                 '1': 'Hate',
