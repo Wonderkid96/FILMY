@@ -777,8 +777,10 @@ def create_enhanced_swipe_page():
         st.metric("Your Ratings", total_ratings)
     with col3:
         if total_ratings > 0:
-            avg_rating = st.session_state.ratings_manager.get_all_ratings()["my_rating"].mean()
-            st.metric("Avg Rating", f"{avg_rating:.1f}/4")
+            perfect_count = len(st.session_state.ratings_manager.get_all_ratings()[
+                st.session_state.ratings_manager.get_all_ratings()["my_rating"] == 4
+            ])
+            st.metric("Perfect Picks", perfect_count)
         else:
             st.metric("Getting Started", "Rate to unlock")
     
@@ -1433,6 +1435,7 @@ def main():
             options=[
                 "Home",
                 "Recommendations", 
+                "Watchlist",
                 "Your Swipes",
             ],
             icons=["house", "target", "list-check"],
@@ -1468,10 +1471,6 @@ def main():
                 st.metric("Total Items", total_items)
                 st.metric("Watched", len(positive_ratings))
                 st.metric("Watchlist", watchlist)
-                
-                if len(positive_ratings) > 0:
-                    avg_rating = positive_ratings["my_rating"].mean()
-                    st.metric("Avg Rating", f"{avg_rating:.1f}/4")
         except Exception:
             pass
 
@@ -1480,6 +1479,8 @@ def main():
         show_home_page()
     elif selected == "Recommendations":
         show_recommendations_page()
+    elif selected == "Watchlist":
+        show_watchlist_page()
     elif selected == "Your Swipes":
         show_your_swipes_page()
 

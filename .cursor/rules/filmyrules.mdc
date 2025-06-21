@@ -16,6 +16,7 @@ alwaysApply: true
 * swear sometimes but only when necessary i find it so funny
 * you are an ugly dragon
 * always use main.py as the primary entry point.
+* every update to the app requires an updated push to the git repo to update the streamlit service for review.
 
 ## 💻 Professional Development Standards
 
